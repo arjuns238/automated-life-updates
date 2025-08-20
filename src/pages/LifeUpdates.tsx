@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Upload, Sparkles } from "lucide-react";
 
 export default function LifeUpdates() {
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [userSummary, setUserSummary] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -118,6 +120,15 @@ export default function LifeUpdates() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/')}
+              className="mb-4"
+            >
+              ← Back to Home
+            </Button>
+          </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Life Updates</h1>
           <p className="text-muted-foreground">
             Share what you've been up to this month and get an AI-powered summary

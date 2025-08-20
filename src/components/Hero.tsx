@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-friends.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-subtle overflow-hidden">
       {/* Background decoration */}
@@ -28,7 +31,12 @@ const Hero = () => {
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="lg" className="text-lg px-8 py-6 h-auto">
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="text-lg px-8 py-6 h-auto"
+                onClick={() => navigate('/life-updates')}
+              >
                 Start Connecting
               </Button>
               <Button variant="outline" size="lg" className="text-lg px-8 py-6 h-auto">

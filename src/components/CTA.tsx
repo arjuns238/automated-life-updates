@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const CTA = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="py-24 bg-gradient-hero relative overflow-hidden">
       {/* Background decorations */}
@@ -23,6 +26,7 @@ const CTA = () => {
               variant="warm" 
               size="lg" 
               className="text-lg px-10 py-6 h-auto bg-white text-primary hover:bg-white/90 shadow-warm"
+              onClick={() => navigate('/life-updates')}
             >
               Start Free Trial
             </Button>
