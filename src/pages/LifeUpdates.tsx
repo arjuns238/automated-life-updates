@@ -74,16 +74,23 @@ export default function LifeUpdates() {
 
       if (error) throw error;
 
-      // Generate AI summary
-      const { data: summaryData, error: summaryError } = await supabase.functions.invoke(
-        'summarize-update',
-        {
-          body: {
+      // Generate AI summary using Python backend
+      let summaryData = null;
+      let summaryError = null;
+      try {
+        const response = await fetch("http://localhost:8000/summarize-update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             user_summary: userSummary.trim(),
             update_id: data.id,
-          },
-        }
-      );
+          }),
+        });
+        summaryData = await response.json();
+        if (!response.ok) throw new Error(summaryData.detail || "AI summary failed");
+      } catch (err) {
+        summaryError = err;
+      }
 
       if (summaryError) {
         console.error('AI summary error:', summaryError);

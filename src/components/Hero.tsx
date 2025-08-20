@@ -35,11 +35,19 @@ const Hero = () => {
                 variant="hero" 
                 size="lg" 
                 className="text-lg px-8 py-6 h-auto"
-                onClick={() => navigate('/life-updates')}
+                onClick={() => navigate('/sign-up')}
               >
-                Start Connecting
+                Sign Up Free
               </Button>
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6 h-auto">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="text-lg px-8 py-6 h-auto"
+                onClick={() => navigate('/sign-in')}
+              >
+                Sign In
+              </Button>
+              <Button variant="ghost" size="lg" className="text-lg px-8 py-6 h-auto" onClick={() => navigate('/life-updates')}>
                 Watch Demo
               </Button>
             </div>
