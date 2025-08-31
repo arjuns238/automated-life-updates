@@ -136,7 +136,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
           description: "Your life update has been saved and summarized",
         });
         console.log("At LifeUpdates.tsx -> Navigating to summary with:", summaryData.ai_summary);
-        navigate("/summary", { state: { aiSummary: summaryData.ai_summary } });
+        navigate("/summary", { state: { aiSummary: summaryData.ai_summary, photos: photoPreviews } });
       }
 
       // Reset form

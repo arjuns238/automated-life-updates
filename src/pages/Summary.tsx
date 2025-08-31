@@ -7,9 +7,37 @@ export default function Summary() {
   const location = useLocation();
   const navigate = useNavigate();
   const aiSummary = location.state?.aiSummary || localStorage.getItem("aiSummary");
+  const photos = location.state?.photos || [];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Immersive Photo Backdrop */}
+      {photos.length > 0 && (
+        <div className="absolute inset-0 z-0">
+          <div className="relative w-full h-full">
+            <img 
+              src={photos[0]} 
+              alt="Life update backdrop" 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+            {photos.length > 1 && (
+              <div className="absolute bottom-0 left-0 right-0 flex gap-2 p-4 overflow-x-auto">
+                {photos.slice(1).map((photo, index) => (
+                  <img 
+                    key={index}
+                    src={photo} 
+                    alt={`Memory ${index + 2}`}
+                    className="w-16 h-16 rounded-lg object-cover border-2 border-white/20 shadow-soft opacity-60"
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <div className="relative z-10 min-h-screen bg-transparent">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -104,6 +132,7 @@ export default function Summary() {
             Home
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );
