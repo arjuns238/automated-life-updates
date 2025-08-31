@@ -12,29 +12,41 @@ export default function LifeUpdates() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [userSummary, setUserSummary] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const newPhotos: string[] = [];
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            newPhotos.push(event.target.result as string);
-            if (newPhotos.length === files.length) {
-              setPhotos(prev => [...prev, ...newPhotos]);
-            }
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
+  // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const files = e.target.files;
+  //   if (files) {
+  //     const newPhotos: string[] = [];
+  //     Array.from(files).forEach((file) => {
+  //       const reader = new FileReader();
+  //       reader.onload = (event) => {
+  //         if (event.target?.result) {
+  //           newPhotos.push(event.target.result as string);
+  //           if (newPhotos.length === files.length) {
+  //             setPhotos(prev => [...prev, ...newPhotos]);
+  //           }
+  //         }
+  //       };
+  //       reader.readAsDataURL(file);
+  //     });
+  //   }
+  // };
+
+
+const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = e.target.files ? Array.from(e.target.files) : [];
+  if (!files.length) return;
+
+  setPhotos(prev => [...prev, ...files]);
+  const newPreviews = files.map(f => URL.createObjectURL(f));
+  setPhotoPreviews(prev => [...prev, ...newPreviews]);
+
+};
 
   const handleSubmit = async () => {
     if (!title.trim() || !userSummary.trim()) {
@@ -67,7 +79,7 @@ export default function LifeUpdates() {
           user_id: user.id,
           title: title.trim(),
           user_summary: userSummary.trim(),
-          photos: photos,
+          // photos: photos,
         })
         .select()
         .single();
@@ -77,16 +89,35 @@ export default function LifeUpdates() {
       // Generate AI summary using Python backend
       let summaryData = null;
       let summaryError = null;
+        
       try {
+        const fd = new FormData();
+        fd.append("user_summary", userSummary.trim());
+        fd.append("update_id", String(data.id));
+        photos.forEach((file) => fd.append("photos", file, file.name));
+
         const response = await fetch("http://localhost:8000/summarize-update", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_summary: userSummary.trim(),
-            update_id: data.id,
-          }),
-        });
+          body: fd, // IMPORTANT: no manual Content-Type header
+          // credentials / headers as needed (CORS, auth, etc.)
+      });
+      // try {
+      // console.log("Sending to backend:", {
+      //   user_summary: userSummary.trim(),
+      //   update_id: data.id,
+      // });
+      //   const response = await fetch("http://localhost:8000/summarize-update", {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json" },
+      //     // body: JSON.stringify({
+      //     //   user_summary: userSummary.trim(),
+      //     //   update_id: data.id,
+      //     //   photos: photos
+      //     // }),
+      //     body: formData
+      //   });
         summaryData = await response.json();
+        console.log("Received from backend:", summaryData);
         if (!response.ok) throw new Error(summaryData.detail || "AI summary failed");
       } catch (err) {
         summaryError = err;
@@ -104,6 +135,8 @@ export default function LifeUpdates() {
           title: "Success!",
           description: "Your life update has been saved and summarized",
         });
+        console.log("At LifeUpdates.tsx -> Navigating to summary with:", summaryData.ai_summary);
+        navigate("/summary", { state: { aiSummary: summaryData.ai_summary } });
       }
 
       // Reset form
@@ -184,18 +217,13 @@ export default function LifeUpdates() {
                 onChange={handlePhotoUpload}
                 className="cursor-pointer"
               />
-              {photos.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  {photos.map((photo, index) => (
-                    <img
-                      key={index}
-                      src={photo}
-                      alt={`Upload ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
-                  ))}
-                </div>
-              )}
+              {photoPreviews.length > 0 && (
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                {photoPreviews.map((src, i) => (
+                  <img key={i} src={src} alt={`Upload ${i + 1}`} className="w-full h-32 object-cover rounded-lg border" />
+                ))}
+              </div>
+            )}
             </div>
 
             <Button 
