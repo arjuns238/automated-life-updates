@@ -30,14 +30,9 @@ app.add_middleware(
 def _to_data_url(image_bytes: bytes, filename: str) -> str:
     ext = (filename.split(".")[-1] or "png").lower()
     if ext not in {"png","jpg","jpeg","webp","gif"}:
-        ext = "png"
+        ext = "png" 
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     return f"data:image/{ext};base64,{b64}"
-
-# class SummaryRequest(BaseModel):
-#     user_summary: Form(...)
-#     update_id: Form(...)
-#     photos: List[UploadFile] = File(default=[])
 
 
 @app.post("/summarize-update")
@@ -47,48 +42,48 @@ async def summarize_update(
     photos: List[UploadFile] = File(default=[])
 ):
     try:
-        # Use OpenAI API to summarize
-        # completion = client.chat.completions.create(
-        #     model="gpt-5-mini",
-        #     messages=
-        # )
-        # Read bytes if you need them:
-        # Read files → data URLs for vision
-        content_items = [{"type": "text", "text": user_summary}]
+        content_items = [{"type": "input_text", "text": f"Summarize this life update: {user_summary}"}]
         for f in photos:
             img_bytes = await f.read()
             data_url = _to_data_url(img_bytes, f.filename)
             content_items.append({
-                "type": "image_url",
-                "image_url": {"url": data_url}
+                "type": "input_image",
+                "image_url": data_url
             })
 
 
         print("Hereeeeeee")
-        print(content_items)
-        # response = client.responses.create(
-        #     model="gpt-5-nano",
-        #     input=[
-        #         {"role": "system", 
-        #          "content": """
-        #          You are the copy + summarization engine for a social app that turns a user’s recent life moments into short, upbeat posts.
-        #          Voice & vibe: warm, encouraging, playful but never cringe.
-        #          Goal: produce a concise post + optional bullets + 3–5 hashtags.
-        #         """
-        #         },
-        #         {"role": "user", "content": f"Summarize this life update: {req.user_summary}"}
+        # print(content_items)
+        response = client.responses.create(
+            model="gpt-5-mini",
+            input=[
+                {"role": "system", 
+                 "content": """
+                You create upbeat, authentic social updates from mixed text + images.
+                Fusion rules:
+                - Read text and images together; cross-reference details.
+                - If text and image conflict, prefer the text.
+                - If an image is ambiguous, describe it briefly without guessing.
+                - Merge overlapping details; avoid repeats.
+                - Keep privacy: no precise addresses or sensitive info.
+                Goal: produce a concise post + 3–5 hashtags.
+                Style: warm, encouraging, never cringe; 0–2 emojis; 3–5 simple hashtags.
+                Voice & vibe: warm, encouraging, playful but never cringe.
+                """
+                },
+                {"role": "user", "content": content_items}
 
-        #     ]
-        # )
+            ]
+        )
 
-        # ai_summary = response.output_text.strip()
-        # print("AI Summary:", ai_summary)
-        # # Update Supabase
-        # data = supabase.table("life_updates").update({"ai_summary": ai_summary}).eq("id", req.update_id).execute()
+        ai_summary = response.output_text.strip()
+        print("AI Summary:", ai_summary)
+        # Update Supabase
+        data = supabase.table("life_updates").update({"ai_summary": ai_summary}).eq("id", update_id).execute()
 
-        # return {"success": True, "ai_summary": ai_summary, "data": data.data}
+        return {"success": True, "ai_summary": ai_summary, "data": data.data, "photos": photos}
 
-        return {"success": True, "ai_summary": "Summary placeholder", "data": "data placeholder"}
+        # return {"success": True, "ai_summary": "Summary placeholder", "data": "data placeholder"}
 
     except Exception as e:
         print(e)
