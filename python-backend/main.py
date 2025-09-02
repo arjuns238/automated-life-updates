@@ -64,36 +64,36 @@ async def summarize_update(
             url = clean_storage_url(raw)
             content_items.append({"type": "input_image", "image_url": url})
         # Now call OpenAI with text + image URLs
-        # response = client.responses.create(
-        #     model="gpt-5-mini",
-        #     input=[
-        #         {"role": "system", 
-        #          "content": """
-        #         You create upbeat, authentic social updates from mixed text + images.
-        #         Fusion rules:
-        #         - Read text and images together; cross-reference details.
-        #         - If text and image conflict, prefer the text.
-        #         - If an image is ambiguous, describe it briefly without guessing.
-        #         - Merge overlapping details; avoid repeats.
-        #         - Keep privacy: no precise addresses or sensitive info.
-        #         Goal: produce a concise post + 3–5 hashtags.
-        #         Style: warm, encouraging, never cringe; 0–2 emojis; 3–5 simple hashtags.
-        #         Voice & vibe: warm, encouraging, playful but never cringe.
-        #         """
-        #         },
-        #         {"role": "user", "content": content_items}
+        response = client.responses.create(
+            model="gpt-5-mini",
+            input=[
+                {"role": "system", 
+                 "content": """
+                You create upbeat, authentic social updates from mixed text + images.
+                Fusion rules:
+                - Read text and images together; cross-reference details.
+                - If text and image conflict, prefer the text.
+                - If an image is ambiguous, describe it briefly without guessing.
+                - Merge overlapping details; avoid repeats.
+                - Keep privacy: no precise addresses or sensitive info.
+                Goal: produce a concise post + 3–5 hashtags.
+                Style: warm, encouraging, never cringe; 0–2 emojis; 3–5 simple hashtags.
+                Voice & vibe: warm, encouraging, playful but never cringe.
+                """
+                },
+                {"role": "user", "content": content_items}
 
-        #     ]
-        # )
+            ]
+        )
 
-        # ai_summary = response.output_text.strip()
-        # print("AI Summary:", ai_summary)
+        ai_summary = response.output_text.strip()
+        print("AI Summary:", ai_summary)
         # Update Supabase
-        # data = supabase.table("life_updates").update({"ai_summary": ai_summary, "photos":photo_urls}).eq("id", update_id).execute()
+        data = supabase.table("life_updates").update({"ai_summary": ai_summary, "photos":photo_urls}).eq("id", update_id).execute()
 
-        # return {"success": True, "ai_summary": ai_summary, "photo_urls": photo_urls}
+        return {"success": True, "ai_summary": ai_summary, "photo_urls": photo_urls}
 
-        return {"success": True, "ai_summary": "Summary placeholder", "photo_urls": photo_urls}
+        # return {"success": True, "ai_summary": "Summary placeholder", "photo_urls": photo_urls}
 
     except Exception as e:
         print(e)
