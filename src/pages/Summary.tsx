@@ -1,138 +1,244 @@
+import { useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Share2, Heart, MessageCircle } from "lucide-react";
+import { Sparkles, ArrowLeft, Share2, Heart, MessageCircle, Repeat2 } from "lucide-react";
+
+/** Extract #hashtags (simple) and return [cleanText, hashtags[]] */
+function splitHashtags(text: string): { clean: string; tags: string[] } {
+  if (!text) return { clean: "", tags: [] };
+  const tags = Array.from(new Set((text.match(/#\w+/g) || []).map(t => t.trim())));
+  const clean = text.replace(/\s*#\w+\s*/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  return { clean, tags };
+}
+
+/** 1–4 image layouts, with nice vibes */
+function MediaGrid({ photos }: { photos: string[] }) {
+  const imgs = photos.slice(0, 4);
+  if (imgs.length === 0) return null;
+
+  if (imgs.length === 1) {
+    return (
+      <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/10 group">
+        <img
+          src={imgs[0]}
+          alt="attachment 1"
+          className="w-full h-auto max-h-[520px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      </div>
+    );
+  }
+
+  if (imgs.length === 2) {
+    return (
+      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+        {imgs.map((src, i) => (
+          <div key={i} className="relative group">
+            <img
+              src={src}
+              alt={`attachment ${i + 1}`}
+              className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (imgs.length === 3) {
+    // 1 big on left, 2 stacked on right
+    return (
+      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+        <div className="relative group">
+          <img
+            src={imgs[0]}
+            alt="attachment 1"
+            className="col-span-1 w-full h-[328px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+        <div className="col-span-1 grid grid-rows-2 gap-1">
+          {imgs.slice(1).map((src, i) => (
+            <div key={i} className="relative group">
+              <img
+                src={src}
+                alt={`attachment ${i + 2}`}
+                className="w-full h-[163px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 4 images
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+      {imgs.map((src, i) => (
+        <div key={i} className="relative group">
+          <img
+            src={src}
+            alt={`attachment ${i + 1}`}
+            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type LocationState = {
+  aiSummary?: string;
+  photo_urls?: string[];
+};
 
 export default function Summary() {
-  const location = useLocation();
   const navigate = useNavigate();
-  const aiSummary = location.state?.aiSummary || localStorage.getItem("aiSummary");
-  const photos = location.state?.photos || [];
+  const location = useLocation();
+  const state = (location.state || {}) as LocationState;
+
+  // text
+  const aiSummary =
+    state.aiSummary ?? localStorage.getItem("aiSummary") ?? "";
+
+  // photos
+  const photos: string[] = useMemo(() => {
+    if (Array.isArray(state.photo_urls) && state.photo_urls.length) {
+      return state.photo_urls.filter(Boolean);
+    }
+    try {
+      const raw = localStorage.getItem("photo_urls");
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }, [state.photo_urls]);
+
+  const { clean, tags } = splitHashtags(aiSummary);
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Immersive Photo Backdrop */}
-      {photos.length > 0 && (
-        <div className="absolute inset-0 z-0">
-          <div className="relative w-full h-full">
-            <img 
-              src={photos[0]} 
-              alt="Life update backdrop" 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-            {photos.length > 1 && (
-              <div className="absolute bottom-0 left-0 right-0 flex gap-2 p-4 overflow-x-auto">
-                {photos.slice(1).map((photo, index) => (
-                  <img 
-                    key={index}
-                    src={photo} 
-                    alt={`Memory ${index + 2}`}
-                    className="w-16 h-16 rounded-lg object-cover border-2 border-white/20 shadow-soft opacity-60"
-                  />
-                ))}
-              </div>
-            )}
+    <div className="min-h-screen bg-background">
+      {/* Soft gradient header bar */}
+      <div className="sticky top-0 z-10 border-b">
+        <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between max-w-2xl">
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-primary" />
+              <h1 className="text-sm font-semibold tracking-wide">Your Summary</h1>
+            </div>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Share2 className="w-4 h-4" />
+              Share
+            </Button>
           </div>
         </div>
-      )}
-      
-      <div className="relative z-10 min-h-screen bg-transparent">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <h1 className="text-lg font-semibold text-foreground">Your Summary</h1>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Share2 className="w-4 h-4" />
-            Share
-          </Button>
-        </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* Post-style Card */}
-        <Card className="shadow-glow border border-border/50 overflow-hidden">
-          {/* Post Header */}
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-hero rounded-full flex items-center justify-center shadow-soft">
+      {/* Post card */}
+      <div className="container mx-auto px-4 py-6 max-w-2xl">
+        <Card className="border border-border/60 bg-card/70 backdrop-blur shadow-lg">
+          <CardHeader className="pb-3">
+            <div className="flex items-start gap-3">
+              {/* glowy avatar */}
+              <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary via-pink-500 to-amber-400 animate-pulse opacity-30" />
+                <div className="relative w-full h-full rounded-full bg-gradient-hero flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-primary-foreground" />
                 </div>
-                <div>
-                  <CardTitle className="text-base font-medium text-foreground">AI Assistant</CardTitle>
-                  <p className="text-sm text-muted-foreground">Your monthly summary</p>
-                </div>
               </div>
-              <div className="text-xs text-muted-foreground">Just now</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-semibold leading-none">AI Companion</CardTitle>
+                  <span className="text-xs text-muted-foreground">· just now</span>
+                </div>
+                <div className="text-xs text-muted-foreground">@goodvibes</div>
+              </div>
             </div>
           </CardHeader>
 
           <CardContent className="pt-0">
-            {/* Summary Content */}
-            <div className="mb-6">
-              <div className="bg-gradient-subtle rounded-lg p-6 border border-border/30">
-                {aiSummary ? (
-                  <div className="text-foreground leading-relaxed whitespace-pre-line">
-                    {aiSummary}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground">No summary available yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">Create a life update to get your AI summary!</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <div className="pl-14">
+              {/* body */}
+              {clean ? (
+                <p className="text-[15px] leading-relaxed whitespace-pre-line">
+                  {clean}
+                </p>
+              ) : (
+                <div className="text-center py-10">
+                  <Sparkles className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-60" />
+                  <p className="text-muted-foreground">No summary yet — create a life update!</p>
+                </div>
+              )}
 
-            {/* Social Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-border/30">
-              <div className="flex items-center gap-6">
-                <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground hover:text-accent">
-                  <Heart className="w-4 h-4" />
-                  <span className="text-sm">42</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground hover:text-primary">
+              {/* media (inside post) */}
+              {photos.length > 0 && <MediaGrid photos={photos} />}
+
+              {/* hashtag chips */}
+              {tags.length > 0 && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {tags.slice(0, 6).map((t, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border bg-background/60 hover:bg-background transition"
+                      title={t}
+                    >
+                      <span className="opacity-70">#</span>
+                      <span className="font-medium">{t.replace(/^#/, "")}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* action bar */}
+              <div className="mt-4 flex items-center justify-between pr-2 text-xs text-muted-foreground">
+                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
                   <MessageCircle className="w-4 h-4" />
-                  <span className="text-sm">Comment</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                  <span>Comment</span>
+                </button>
+                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
+                  <Repeat2 className="w-4 h-4" />
+                  <span>Repost</span>
+                </button>
+                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
+                  <Heart className="w-4 h-4" />
+                  <span>Like</span>
+                </button>
+                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
                   <Share2 className="w-4 h-4" />
-                  <span className="text-sm">Share</span>
-                </Button>
+                  <span>Share</span>
+                </button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
+        {/* footer actions */}
         <div className="mt-6 flex gap-3">
-          <Button 
-            onClick={() => navigate('/life-updates')}
-            className="flex-1 bg-gradient-hero text-primary-foreground shadow-glow hover:shadow-warm transition-all duration-300"
+          <Button
+            onClick={() => navigate("/life-updates")}
+            className="flex-1 bg-gradient-hero text-primary-foreground shadow-glow hover:shadow-warm transition-all"
           >
             Create New Update
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => navigate('/')}
-            className="px-6"
-          >
+          <Button variant="outline" onClick={() => navigate("/")} className="px-6">
             Home
           </Button>
         </div>
-      </div>
       </div>
     </div>
   );

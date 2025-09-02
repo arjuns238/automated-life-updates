@@ -136,7 +136,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
           description: "Your life update has been saved and summarized",
         });
         console.log("At LifeUpdates.tsx -> Navigating to summary with:", summaryData.ai_summary);
-        navigate("/summary", { state: { aiSummary: summaryData.ai_summary, photos: photoPreviews } });
+        localStorage.setItem("aiSummary", summaryData.ai_summary);
+        localStorage.setItem("photo_urls", JSON.stringify(summaryData.photo_urls));
+        localStorage.setItem("last_update_id", String(summaryData.updateId)); // handy for the fallback fetch
+        navigate("/summary", { state: { aiSummary: summaryData.ai_summary, photo_urls: summaryData.photo_urls, update_id: summaryData.updateId } });
       }
 
       // Reset form
