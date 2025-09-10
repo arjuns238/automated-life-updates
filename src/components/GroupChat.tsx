@@ -1,8 +1,8 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useGroupMessages } from "../hooks/useGroupMessages";
 
-export function GroupChat({ groupId }: { groupId: string }) {
+export default function GroupChat({ groupId }: { groupId: string }) {
   const [content, setContent] = useState("");
   const { sendMessage, loading } = useSendMessage();
   const messages = useGroupMessages(groupId);
