@@ -31,7 +31,8 @@ export default function SignIn() {
         title: "Welcome back!",
         description: "You are now signed in.",
       });
-      navigate("/life-updates");
+      // navigate("/life-updates");
+      navigate("/landing");
     }
   };
 

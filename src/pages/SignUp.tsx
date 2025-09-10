@@ -33,7 +33,8 @@ export default function SignUp() {
         title: "Welcome!",
         description: "Account created successfully.",
       });
-      navigate("/life-updates");
+      // navigate("/life-updates");
+      navigate("/landing");
     }
   };
 
