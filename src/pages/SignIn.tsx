@@ -32,7 +32,7 @@ export default function SignIn() {
         description: "You are now signed in.",
       });
       // navigate("/life-updates");
-      navigate("/landing");
+      navigate("/home");
     }
   };
 

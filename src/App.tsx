@@ -9,7 +9,7 @@ import NotFound from "./pages/NotFound";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import Summary from "./pages/Summary";
-import Landing from "./pages/Landing";
+import Home from "./pages/Home";
 import Chats from "./pages/Chats";
 
 const queryClient = new QueryClient();
@@ -27,7 +27,7 @@ const App = () => (
           <Route path="/sign-in" element={<SignIn />} />
           <Route path="/summary" element={<Summary />} />
           <Route path="/chats" element={<Chats />} />
-          <Route path="/landing" element={<Landing />} /> 
+          <Route path="/home" element={<Home />} /> 
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
