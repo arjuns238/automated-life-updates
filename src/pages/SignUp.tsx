@@ -34,7 +34,7 @@ export default function SignUp() {
         description: "Account created successfully.",
       });
       // navigate("/life-updates");
-      navigate("/landing");
+      navigate("/home");
     }
   };
 
