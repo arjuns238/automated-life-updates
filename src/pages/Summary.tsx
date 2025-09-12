@@ -128,7 +128,7 @@ export default function Summary() {
   const { clean, tags } = splitHashtags(aiSummary);
 
   return (
-    <div className="min-h-screen bg-background">
+  <div className="min-h-[calc(100vh-5rem)] bg-background">
       {/* Soft gradient header bar */}
       <div className="sticky top-0 z-10 border-b">
         <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background">

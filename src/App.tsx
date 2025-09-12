@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import Navbar from "@/components/Navbar";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,16 +21,19 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} /> 
-          <Route path="/life-updates" element={<LifeUpdates />} />
-          <Route path="/sign-up" element={<SignUp />} />
-          <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/summary" element={<Summary />} />
-          <Route path="/chats" element={<Chats />} />
-          <Route path="/home" element={<Home />} /> 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+          <Navbar />
+          <div className="pt-20">
+            <Routes>
+              <Route path="/" element={<Index />} /> 
+              <Route path="/life-updates" element={<LifeUpdates />} />
+              <Route path="/sign-up" element={<SignUp />} />
+              <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/summary" element={<Summary />} />
+              <Route path="/chats" element={<Chats />} />
+              <Route path="/home" element={<Home />} /> 
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

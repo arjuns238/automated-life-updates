@@ -113,15 +113,19 @@ export default function Chats() {
       </div>
 
       {/* Right: Summary view OR active chat */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {activeGroup ? (
-          <GroupChat
-            group={activeGroup}
-            onBack={() => setActiveGroupId(null)}
-            onSendMessage={handleSendMessage}
-          />
+          <div className="flex flex-col h-full">
+            <div className="flex-1 overflow-y-auto">
+              <GroupChat
+                group={activeGroup}
+                onBack={() => setActiveGroupId(null)}
+                onSendMessage={handleSendMessage}
+              />
+            </div>
+          </div>
         ) : (
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 overflow-y-auto h-full">
             {/* Upcoming chats */}
             <section>
               <h3 className="text-lg font-semibold text-blue-600 mb-3">
