@@ -19,6 +19,12 @@ const Navbar = () => {
     };
   }, []);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    navigate("/sign-in");
+  };
+
   return (
     <nav className="w-full bg-blue-50 shadow-md flex items-center justify-between px-8 py-4 fixed top-0 left-0 z-50 transition-colors duration-300">
       {/* Logo + Links */}
@@ -58,6 +64,13 @@ const Navbar = () => {
             >
               Settings
             </Button>
+            <Button
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-100"
+              onClick={handleLogout}
+            >
+              Log Out
+            </Button>
           </>
         ) : (
           <Button
@@ -65,7 +78,7 @@ const Navbar = () => {
             className="bg-blue-600 text-white hover:bg-blue-700"
             onClick={() => navigate("/sign-in")}
           >
-            Login
+            Sign In
           </Button>
         )}
       </div>
