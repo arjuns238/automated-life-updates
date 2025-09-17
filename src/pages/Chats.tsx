@@ -143,39 +143,65 @@ export default function Chats() {
       </div>
 
       {/* Right: Chat view OR summary */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {activeGroup ? (
-          <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto">
-              <GroupChat
-                group={activeGroup}
-                onBack={() => setActiveGroupId(null)}
-              />
+     <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      {activeGroup ? (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto">
+            <GroupChat
+              group={activeGroup}
+              onBack={() => setActiveGroupId(null)}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="p-6 space-y-6 overflow-y-auto h-full">
+          {/* Upcoming Chats */}
+          <section>
+            <h3 className="text-lg font-semibold text-blue-600 mb-3">
+              ⏰ Upcoming Chats
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Card className="rounded-xl border-blue-200">
+                <CardContent className="p-4 text-sm text-gray-700">
+                  Example Group — Next update: Friday
+                </CardContent>
+              </Card>
+              <Card className="rounded-xl border-blue-200">
+                <CardContent className="p-4 text-sm text-gray-700">
+                  Another Group — Next update: Tomorrow
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        ) : (
-          <div className="p-6 space-y-6 overflow-y-auto h-full">
-            {/* Placeholder sections */}
-            <section>
-              <h3 className="text-lg font-semibold text-blue-600 mb-3">
-                ⏰ Upcoming Chats
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Card className="rounded-xl border-blue-200">
-                  <CardContent className="p-4 text-sm text-gray-700">
-                    Example Group — Next update: Friday
-                  </CardContent>
-                </Card>
-                <Card className="rounded-xl border-blue-200">
-                  <CardContent className="p-4 text-sm text-gray-700">
-                    Another Group — Next update: Tomorrow
-                  </CardContent>
-                </Card>
-              </div>
-            </section>
-          </div>
-        )}
-      </div>
+          </section>
+
+          {/* Recent Highlights */}
+          <section>
+            <h3 className="text-lg font-semibold text-blue-600 mb-3">
+              🌟 Recent Highlights
+            </h3>
+            <div className="space-y-3">
+              <Card className="rounded-xl border-blue-200">
+                <CardContent className="p-4 text-sm text-gray-700">
+                    <strong>Alice</strong> shared a new recipe in{" "}
+                    <em>Foodies 🍜</em>
+                </CardContent>
+              </Card>
+              <Card className="rounded-xl border-blue-200">
+                <CardContent className="p-4 text-sm text-gray-700">
+                    <strong>Sam</strong> finished a half-marathon update in{" "}
+                    <em>Morning Joggers 🏃‍♀️</em>
+                </CardContent>
+              </Card>
+              <Card className="rounded-xl border-blue-200">
+                <CardContent className="p-4 text-sm text-gray-700">
+                  Carol: “Let’s schedule the next game night 🎮” — 1d ago
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        </div>
+      )}
+    </div>
 
       {/* Create Group Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
