@@ -1,25 +1,27 @@
+-- This is the SQL executed in Supabase to set up the database schema for group chats.
+
 -- Groups table
-CREATE TABLE groups (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  created_by uuid REFERENCES auth.users(id),
-  created_at timestamp with time zone DEFAULT now()
+create table groups (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null,
+  description text,
+  interval text,
+  created_at timestamp default now()
 );
 
--- Group members table
-CREATE TABLE group_members (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id uuid REFERENCES groups(id) ON DELETE CASCADE,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  joined_at timestamp with time zone DEFAULT now(),
-  UNIQUE (group_id, user_id)
+-- Group members (user to group many-to-many)
+create table group_members (
+  group_id uuid references groups(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  role text default 'member',
+  primary key (group_id, user_id)
 );
 
--- Messages table
-CREATE TABLE messages (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  group_id uuid REFERENCES groups(id) ON DELETE CASCADE,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  content text NOT NULL,
-  created_at timestamp with time zone DEFAULT now()
+-- Messages
+create table messages (
+  id uuid primary key default uuid_generate_v4(),
+  group_id uuid references groups(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  content text not null,
+  created_at timestamp default now()
 );
