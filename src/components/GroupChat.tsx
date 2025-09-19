@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Send, Info, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,26 +22,26 @@ export default function GroupChat({ group, onBack }) {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showInfo, setShowInfo] = useState(false);
-
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description || "");
   const [interval, setInterval] = useState(group.interval || "weekly");
-
   const [members, setMembers] = useState<any[]>([]);
   const [newMember, setNewMember] = useState("");
-
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Get current user
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUser(data.user));
   }, []);
 
-  // Load messages + realtime subscription
+  // Load messages & subscribe to real-time
   useEffect(() => {
     if (!group?.id) return;
     let channel: any;
 
     async function loadMessages() {
+      // Load existing messages
       const { data, error } = await supabase
         .from("messages")
         .select("id, content, user_id, created_at")
@@ -50,26 +50,46 @@ export default function GroupChat({ group, onBack }) {
 
       if (!error) setMessages(data ?? []);
 
+      // Subscribe to real-time inserts
       channel = supabase
-        .channel(`group:${group.id}`)
+        .channel(`group-${group.id}`)
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${group.id}` },
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `group_id=eq.${group.id}`,
+          },
           (payload) => {
-            setMessages((m) => [...m, payload.new]);
+            setMessages((prev) => {
+              if (prev.some((msg) => msg.id === payload.new.id)) return prev;
+              return [...prev, payload.new];
+            });
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            console.log(`Subscribed to group ${group.id} realtime channel`);
+          }
+        });
     }
 
     loadMessages();
-    return () => { if (channel) supabase.removeChannel(channel); };
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [group?.id]);
+
+  // Scroll to newest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   // Load members
   useEffect(() => {
     if (!group?.id) return;
-
     async function loadMembers() {
       const { data, error } = await supabase
         .from("group_members")
@@ -81,16 +101,30 @@ export default function GroupChat({ group, onBack }) {
     loadMembers();
   }, [group?.id]);
 
+  // Send message
   async function handleSend() {
     if (!newMessage.trim() || !currentUser) return;
-    await supabase.from("messages").insert({
+
+    // Optimistic message
+    const tempMessage = {
+      id: `temp-${Date.now()}`,
       group_id: group.id,
       user_id: currentUser.id,
       content: newMessage,
-    });
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [...prev, tempMessage]);
     setNewMessage("");
+
+    await supabase.from("messages").insert({
+      group_id: group.id,
+      user_id: currentUser.id,
+      content: tempMessage.content,
+    });
   }
 
+  // Save group info
   async function handleSaveGroup() {
     await supabase
       .from("groups")
@@ -99,27 +133,21 @@ export default function GroupChat({ group, onBack }) {
     setShowInfo(false);
   }
 
+  // Add member
   async function handleAddMember() {
     if (!newMember.trim()) return;
-
-    // Example: look up user by email in your `auth.users`
-    const { data, error } = await supabase.rpc("get_user_by_email", { email: newMember });
-    if (error || !data) {
-      alert("No user found with that email.");
-      return;
-    }
-
     await supabase.from("group_members").insert({
       group_id: group.id,
-      user_id: data.id,
+      user_id: newMember,
     });
-
+    setMembers((prev) => [...prev, { user_id: newMember, role: "member" }]);
     setNewMember("");
-    setMembers((prev) => [...prev, { user_id: data.id, role: "member" }]);
   }
 
+  // Remove member
   async function handleRemoveMember(userId: string) {
-    await supabase.from("group_members")
+    await supabase
+      .from("group_members")
       .delete()
       .eq("group_id", group.id)
       .eq("user_id", userId);
@@ -127,9 +155,7 @@ export default function GroupChat({ group, onBack }) {
     setMembers((prev) => prev.filter((m) => m.user_id !== userId));
   }
 
-  if (!group) {
-    return <div>Loading group...</div>;
-  }
+  if (!group) return <div>Loading group...</div>;
 
   return (
     <div className="flex flex-col h-screen">
@@ -156,22 +182,40 @@ export default function GroupChat({ group, onBack }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-blue-50 to-white">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.user_id === currentUser?.id ? "justify-end" : "justify-start"}`}
-          >
+        {messages.map((msg) => {
+          const isMine = msg.user_id === currentUser?.id;
+          const timestamp = new Date(msg.created_at).toLocaleString([], {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          return (
             <div
-              className={`px-4 py-2 rounded-2xl max-w-xs shadow-sm ${
-                msg.user_id === currentUser?.id
-                  ? "bg-blue-500 text-white rounded-br-none"
-                  : "bg-gray-100 text-gray-800 rounded-bl-none"
-              }`}
+              key={msg.id}
+              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
             >
-              <p className="text-sm">{msg.content}</p>
+              <div
+                className={`px-4 py-2 rounded-2xl max-w-xs shadow-sm ${
+                  isMine
+                    ? "bg-blue-500 text-white rounded-br-none"
+                    : "bg-gray-100 text-gray-800 rounded-bl-none"
+                }`}
+              >
+                {/* Show user_id only for received messages */}
+                {!isMine && (
+                  <p className="text-xs text-gray-500 mb-1">{msg.user_id}</p>
+                )}
+                <p className="text-sm">{msg.content}</p>
+                <p className="text-xs text-gray-400 mt-1 text-right">
+                  {timestamp}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
@@ -203,12 +247,13 @@ export default function GroupChat({ group, onBack }) {
             <Label>Group Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-
           <div className="space-y-2">
             <Label>Description</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
           </div>
-
           <div className="space-y-2">
             <Label>Update Interval</Label>
             <Select value={interval} onValueChange={setInterval}>
@@ -244,12 +289,11 @@ export default function GroupChat({ group, onBack }) {
                 </li>
               ))}
             </ul>
-
             <div className="flex gap-2 mt-2">
               <Input
                 value={newMember}
                 onChange={(e) => setNewMember(e.target.value)}
-                placeholder="Enter user email"
+                placeholder="Enter user_id"
               />
               <Button size="sm" onClick={handleAddMember}>
                 <UserPlus size={16} />
