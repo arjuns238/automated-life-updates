@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from backend_utils import clean_storage_url, _safe_name
+from routers import strava
 
 load_dotenv()
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
@@ -28,6 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(strava.router, prefix="/api/strava", tags=["strava"])
 print("HEREEEE", supabase.storage.list_buckets())
 
 @app.post("/summarize-update")
