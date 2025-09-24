@@ -133,7 +133,7 @@ export default function Chats() {
                 </p>
                 <p>
                   <span className="font-medium">Interval:</span>{" "}
-                  {group.interval || "Unset"}
+                  {group.interval ? group.interval.charAt(0).toUpperCase() + group.interval.slice(1) : "Unset"}
                 </p>
               </CardContent>
             </Card>
