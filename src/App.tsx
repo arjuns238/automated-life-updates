@@ -13,6 +13,10 @@ import Summary from "./pages/Summary";
 import Home from "./pages/Home";
 import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
+import Profile from "./pages/settings/Profile";
+import Integrations from "./pages/settings/Integrations";
+import Notifications from "./pages/settings/Notifications";
+import Privacy from "./pages/settings/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -32,7 +36,12 @@ const App = () => (
               <Route path="/summary" element={<Summary />} />
               <Route path="/chats" element={<Chats />} />
               <Route path="/home" element={<Home />} /> 
-              <Route path="/settings" element={<Settings />} />
+              <Route path="/settings" element={<Settings />}>
+                <Route path="profile" element={<Profile />} />
+                <Route path="integrations" element={<Integrations />} />
+                <Route path="notifications" element={<Notifications />} />
+                <Route path="privacy" element={<Privacy />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
