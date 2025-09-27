@@ -38,10 +38,10 @@ export default function Profile() {
         .eq("id", user.id)
         .single();
 
-      // Determine default avatar (DiceBear) using user.id for consistent random avatar
       const defaultAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${user.id}`;
 
-      if (profileError) {
+      if (profileError && profileError.code !== "PGRST116") {
+        // PGRST116 = "No rows found"
         console.error("Error fetching profile:", profileError);
         setAvatarUrl(defaultAvatar);
       } else if (data) {
@@ -50,6 +50,7 @@ export default function Profile() {
         setDisplayName(data.display_name || "");
         setAvatarUrl(data.avatar_url || defaultAvatar);
       } else {
+        // no row yet
         setAvatarUrl(defaultAvatar);
       }
 
@@ -64,39 +65,94 @@ export default function Profile() {
   // Avatar handlers
   const handleAvatarClick = () => fileInputRef.current?.click();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (reader.result) {
-          setAvatarUrl(reader.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+
+    try {
+      // Generate unique file path per user
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // Upload to Supabase storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const newAvatarUrl = publicUrlData.publicUrl;
+      setAvatarUrl(newAvatarUrl);
+
+      // Save avatar change immediately with upsert
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          avatar_url: newAvatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (err) {
+      console.error("Error uploading avatar:", err);
     }
   };
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     if (!user) return;
-    setAvatarUrl(`https://api.dicebear.com/7.x/identicon/svg?seed=${user.id}`);
+    const defaultAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${user.id}`;
+    setAvatarUrl(defaultAvatar);
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: user.id,
+        avatar_url: defaultAvatar,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) console.error("Error resetting avatar:", error);
+    else setProfile(data);
   };
 
-  // Save changes
+  // Save changes (username + display name)
   const handleSave = async () => {
     if (!user) return;
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        username,
-        display_name: displayName,
-        avatar_url: avatarUrl,
-      })
-      .eq("id", user.id);
+    const updates = {
+      id: user.id, // required for upsert
+      username,
+      display_name: displayName,
+      avatar_url: avatarUrl,
+      updated_at: new Date().toISOString(),
+    };
 
-    if (error) console.error("Error saving profile:", error);
-    else alert("Profile updated successfully!");
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(updates)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error saving profile:", error);
+    } else {
+      setProfile(data);
+      setUsername(data.username || "");
+      setDisplayName(data.display_name || "");
+      setAvatarUrl(data.avatar_url || avatarUrl);
+      alert("Profile updated successfully!");
+    }
   };
 
   return (
@@ -153,10 +209,10 @@ export default function Profile() {
             <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
           </div>
 
-          {/* <div>
+          <div>
             <Label htmlFor="displayName">Display Name</Label>
             <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          </div> */}
+          </div>
 
           <div>
             <Label htmlFor="password" className="flex items-center gap-2">
