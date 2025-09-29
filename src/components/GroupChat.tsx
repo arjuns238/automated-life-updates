@@ -52,27 +52,25 @@ export default function GroupChat({ group, onBack }) {
 
   // group info states
   const [showInfo, setShowInfo] = useState(false);
-  // initialize local editable fields from the incoming `group` prop
   const [name, setName] = useState(group?.name ?? "");
   const [description, setDescription] = useState(group?.description ?? "");
-  // normalize interval to lowercase values used elsewhere (e.g. 'weekly')
   const [interval, setInterval] = useState((group?.interval ?? "weekly").toLowerCase());
   const [members, setMembers] = useState<any[]>([]);
   const [newMember, setNewMember] = useState("");
-  // Load members
+
+  // Load members with profiles
   useEffect(() => {
     if (!group?.id) return;
     async function loadMembers() {
       const { data, error } = await supabase
         .from("group_members")
-        .select("user_id, role")
+        .select("user_id, role, profiles(display_name, username, avatar_url)")
         .eq("group_id", group.id);
       if (!error) setMembers(data ?? []);
     }
     loadMembers();
   }, [group?.id]);
 
-  // Keep local editable state in sync when the `group` prop changes (e.g. user navigates to another group)
   useEffect(() => {
     setName(group?.name ?? "");
     setDescription(group?.description ?? "");
@@ -89,7 +87,6 @@ export default function GroupChat({ group, onBack }) {
 
   async function handleAddMember() {
     if (!newMember.trim()) return;
-    // Example: look up user by email in your `auth.users`
     const { data, error } = await supabase.rpc("get_user_by_email", { email: newMember });
     if (error || !data) {
       alert("No user found with that email.");
@@ -100,7 +97,7 @@ export default function GroupChat({ group, onBack }) {
       user_id: data.id,
     });
     setNewMember("");
-    setMembers((prev) => [...prev, { user_id: data.id, role: "member" }]);
+    setMembers((prev) => [...prev, { user_id: data.id, role: "member", profiles: data }]);
   }
 
   async function handleRemoveMember(userId) {
@@ -111,12 +108,11 @@ export default function GroupChat({ group, onBack }) {
     setMembers((prev) => prev.filter((m) => m.user_id !== userId));
   }
 
-  // Get current user
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUser(data.user));
   }, []);
 
-  // Load + subscribe to messages
+  // Messages with profiles
   useEffect(() => {
     if (!group?.id) return;
     let channel: any;
@@ -124,7 +120,7 @@ export default function GroupChat({ group, onBack }) {
     async function loadMessages() {
       const { data } = await supabase
         .from("messages")
-        .select("id, content, user_id, created_at")
+        .select("id, content, user_id, created_at, profiles(display_name, username, avatar_url)")
         .eq("group_id", group.id)
         .order("created_at");
 
@@ -134,12 +130,7 @@ export default function GroupChat({ group, onBack }) {
         .channel(`group-${group.id}`)
         .on(
           "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `group_id=eq.${group.id}`,
-          },
+          { event: "INSERT", schema: "public", table: "messages", filter: `group_id=eq.${group.id}` },
           (payload) => {
             setMessages((prev) =>
               prev.some((msg) => msg.id === payload.new.id)
@@ -157,12 +148,11 @@ export default function GroupChat({ group, onBack }) {
     };
   }, [group?.id]);
 
-  // Auto-scroll on new message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load + subscribe to summaries (Life Updates)
+  // Summaries with profiles
   useEffect(() => {
     if (!group?.id) return;
     let channel: any;
@@ -170,7 +160,7 @@ export default function GroupChat({ group, onBack }) {
     async function loadSummaries() {
       const { data } = await supabase
         .from("summaries")
-        .select("id, content, user_id, created_at")
+        .select("id, content, user_id, created_at, profiles(display_name, username, avatar_url)")
         .eq("group_id", group.id)
         .order("created_at");
 
@@ -180,12 +170,7 @@ export default function GroupChat({ group, onBack }) {
         .channel(`summaries-${group.id}`)
         .on(
           "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "summaries",
-            filter: `group_id=eq.${group.id}`,
-          },
+          { event: "INSERT", schema: "public", table: "summaries", filter: `group_id=eq.${group.id}` },
           (payload) => {
             setSummaries((prev) =>
               prev.some((s) => s.id === payload.new.id)
@@ -203,7 +188,6 @@ export default function GroupChat({ group, onBack }) {
     };
   }, [group?.id]);
 
-  // Send message
   async function handleSendMessage() {
     if (!newMessage.trim() || !currentUser) return;
     setNewMessage("");
@@ -214,7 +198,6 @@ export default function GroupChat({ group, onBack }) {
     });
   }
 
-  // Send summary
   async function handleSendSummary() {
     if (!newSummary.trim() || !currentUser) return;
     setNewSummary("");
@@ -225,7 +208,6 @@ export default function GroupChat({ group, onBack }) {
     });
   }
 
-  // Swipe support
   const { handleTouchStart, handleTouchEnd } = useSwipe(
     () => setActivePanel("chat"),
     () => setActivePanel("updates")
@@ -280,6 +262,25 @@ export default function GroupChat({ group, onBack }) {
                 key={s.id}
                 className="bg-yellow-50 border border-yellow-200 p-3 rounded-xl shadow-sm"
               >
+                <div className="flex items-center gap-2 mb-2">
+                  {s.profiles?.avatar_url ? (
+                    <img
+                      src={s.profiles.avatar_url}
+                      alt="avatar"
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center text-sm text-gray-600">
+                      {s.profiles?.display_name?.[0] ?? "?"}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-gray-700">
+                    {s.profiles?.display_name ?? "Unknown"}{" "}
+                    <span className="text-gray-400 text-xs">
+                      @{s.profiles?.username ?? s.user_id.slice(0, 6)}
+                    </span>
+                  </span>
+                </div>
                 <p className="text-sm">{s.content}</p>
                 <p className="text-xs text-gray-400 mt-1 text-right">
                   {new Date(s.created_at).toLocaleString()}
@@ -289,28 +290,81 @@ export default function GroupChat({ group, onBack }) {
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((msg) => {
+            {messages.map((msg, i) => {
               const isMine = msg.user_id === currentUser?.id;
+              const prevMsg = messages[i - 1];
+              const nextMsg = messages[i + 1];
+              const sameUserAsPrev = prevMsg && prevMsg.user_id === msg.user_id;
+              const sameUserAsNext = nextMsg && nextMsg.user_id === msg.user_id;
+
               return (
                 <div
                   key={msg.id}
-                  className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                  className={`flex gap-3 mb-1 ${isMine ? "justify-end" : "justify-start"} items-end`}
                 >
-                  <div
-                    className={`px-4 py-2 rounded-2xl max-w-xs shadow-sm ${
-                      isMine
-                        ? "bg-blue-500 text-white rounded-br-none"
-                        : "bg-gray-100 text-gray-800 rounded-bl-none"
-                    }`}
-                  >
-                    {!isMine && (
-                      <p className="text-xs text-gray-500 mb-1">{msg.user_id}</p>
+                  {/* Avatar (only on the *last* message in streak) */}
+                  {!isMine && !sameUserAsNext && (
+                    msg.profiles?.avatar_url ? (
+                      <img
+                        src={msg.profiles.avatar_url}
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-base text-gray-600">
+                        {msg.profiles?.display_name?.[0] ?? "?"}
+                      </div>
+                    )
+                  )}
+                  {!isMine && sameUserAsNext && <div className="w-10" />} {/* spacer for alignment */}
+
+                  {/* Message block */}
+                  <div className={`flex flex-col max-w-md ${isMine ? "items-end" : "items-start"}`}>
+                    {/* Header line (only on first in streak) */}
+                    {!sameUserAsPrev && (
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className={`font-medium ${isMine ? "text-blue-600" : "text-gray-800"}`}>
+                          {msg.profiles?.display_name ?? "Unknown"}
+                        </span>
+                        <span className="text-gray-400 text-sm">
+                          @{msg.profiles?.username ?? msg.user_id.slice(0, 6)}
+                        </span>
+                        <span className="text-gray-400 text-xs">
+                          {new Date(msg.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
                     )}
-                    <p className="text-sm">{msg.content}</p>
-                    <p className="text-xs text-gray-400 mt-1 text-right">
-                      {new Date(msg.created_at).toLocaleString()}
-                    </p>
+
+                    {/* Bubble */}
+                    <div
+                      className={`px-4 py-2 rounded-2xl shadow-sm text-sm ${
+                        isMine
+                          ? "bg-blue-500 text-white rounded-br-none"
+                          : "bg-gray-100 text-gray-800 rounded-bl-none"
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
                   </div>
+
+                  {/* My avatar (only on the *last* message in streak) */}
+                  {isMine && !sameUserAsNext && (
+                    currentUser?.user_metadata?.avatar_url ? (
+                      <img
+                        src={currentUser.user_metadata.avatar_url}
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-base text-gray-600">
+                        {currentUser?.email?.[0]?.toUpperCase() ?? "?"}
+                      </div>
+                    )
+                  )}
+                  {isMine && sameUserAsNext && <div className="w-10" />} {/* spacer for alignment */}
                 </div>
               );
             })}
@@ -348,13 +402,12 @@ export default function GroupChat({ group, onBack }) {
         )}
       </div>
 
-      {/* Group Info Dialog (restored with editing and member management) */}
+      {/* Group Info Dialog */}
       <Dialog open={showInfo} onOpenChange={setShowInfo}>
         <DialogContent className="max-w-md space-y-4">
           <DialogHeader>
             <DialogTitle>Edit Group</DialogTitle>
           </DialogHeader>
-          {/* Editable fields */}
           <div className="space-y-2">
             <Label>Group Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} />
@@ -377,7 +430,6 @@ export default function GroupChat({ group, onBack }) {
               </SelectContent>
             </Select>
           </div>
-          {/* Members */}
           <div className="space-y-2">
             <Label>Members</Label>
             <ul className="space-y-1">
@@ -386,7 +438,23 @@ export default function GroupChat({ group, onBack }) {
                   key={m.user_id}
                   className="flex items-center justify-between text-sm bg-gray-50 px-2 py-1 rounded-md"
                 >
-                  <span>{m.user_id}</span>
+                  <div className="flex items-center gap-2">
+                    {m.profiles?.avatar_url ? (
+                      <img
+                        src={m.profiles.avatar_url}
+                        alt="avatar"
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs text-gray-600">
+                        {m.profiles?.display_name?.[0] ?? "?"}
+                      </div>
+                    )}
+                    <span>
+                      {m.profiles?.display_name ?? "Unknown"}{" "}
+                      <span className="text-gray-400">@{m.profiles?.username}</span>
+                    </span>
+                  </div>
                   <Button
                     size="icon"
                     variant="ghost"
