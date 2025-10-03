@@ -285,12 +285,24 @@ export default function GroupChat({ group, onBack }) {
                   <div className={`flex flex-col max-w-md ${isMine ? "items-end" : "items-start"}`}>
                     {!sameUserAsPrev && (
                       <div className="flex items-baseline gap-2 mb-1">
-                        <span className={`font-medium ${isMine ? "text-blue-600" : "text-gray-800"}`}>{msg.profiles?.display_name ?? "Unknown"}</span>
-                        <span className="text-gray-400 text-sm">@{msg.profiles?.username ?? msg.user_id.slice(0, 6)}</span>
-                        <span className="text-gray-400 text-xs">{new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                        <span className={`font-medium ${isMine ? "text-blue-600" : "text-gray-800"}`}>
+                          {msg.profiles?.display_name ?? "Unknown"}
+                        </span>
+                        <span className="text-gray-400 text-sm">
+                          @{msg.profiles?.username ?? msg.user_id.slice(0, 6)}
+                        </span>
+                        <span className="text-gray-400 text-xs">
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
                       </div>
                     )}
-                    <div className={`px-4 py-2 rounded-2xl shadow-sm text-sm ${isMine ? "bg-blue-500 text-white rounded-br-none" : "bg-gray-100 text-gray-800 rounded-bl-none"}`}>
+                    <div
+                      className={`px-4 py-2 rounded-2xl shadow-sm text-sm ${
+                        isMine
+                          ? "bg-blue-500 text-white rounded-br-none"
+                          : "bg-gray-100 text-gray-800 rounded-bl-none"
+                      }`}
+                    >
                       {msg.content}
                     </div>
                   </div>
@@ -298,7 +310,7 @@ export default function GroupChat({ group, onBack }) {
                   {/* Right side */}
                   {isMine && showAvatar && (
                     <img
-                      src={getAvatarUrl(currentUser?.id, currentUser?.user_metadata?.avatar_url)}
+                      src={getAvatarUrl(msg.user_id, msg.profiles?.avatar_url)}
                       alt="avatar"
                       className={`w-${avatarSize} h-${avatarSize} rounded-full object-cover`}
                     />
