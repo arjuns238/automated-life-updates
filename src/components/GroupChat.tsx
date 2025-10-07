@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Send, Info } from "lucide-react";
+import { ArrowLeft, Send, Info, X, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 // ---------- Helper for swipe detection ----------
 function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
@@ -134,6 +136,9 @@ export default function GroupChat({ group, onBack }) {
   const [interval, setInterval] = useState((group?.interval ?? "weekly").toLowerCase());
   const [members, setMembers] = useState<any[]>([]);
 
+  const [showInfo, setShowInfo] = useState(false);
+  const [newMember, setNewMember] = useState("");
+
   const { handleTouchStart, handleTouchEnd } = useSwipe(
     () => setActivePanel("chat"),
     () => setActivePanel("updates")
@@ -243,6 +248,18 @@ export default function GroupChat({ group, onBack }) {
     setActivePanel("chat");
   }
 
+  // Dummy member handlers
+  function handleRemoveMember(userId: string) {
+    console.log("Remove member:", userId);
+  }
+  function handleAddMember() {
+    console.log("Add member:", newMember);
+    setNewMember("");
+  }
+  function handleSaveGroup() {
+    console.log("Save group:", { name, description, interval });
+  }
+
   if (!group) return <div>Loading group...</div>;
 
   return (
@@ -272,7 +289,12 @@ export default function GroupChat({ group, onBack }) {
           >
             Chat
           </Button>
-          <Button variant="ghost" size="sm" className="rounded-full hover:bg-blue-100">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full hover:bg-blue-100"
+            onClick={() => setShowInfo(true)}
+          >
             <Info className="text-blue-600" />
           </Button>
         </div>
@@ -438,6 +460,80 @@ export default function GroupChat({ group, onBack }) {
           </Select>
         )}
       </div>
+
+      {/* Group Info Dialog */}
+      <Dialog open={showInfo} onOpenChange={setShowInfo}>
+        <DialogContent className="max-w-md space-y-4">
+          <DialogHeader>
+            <DialogTitle>Edit Group</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Group Name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Update Interval</Label>
+            <Select value={interval} onValueChange={setInterval}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select interval" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="biweekly">Biweekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Members</Label>
+            <ul className="space-y-1">
+              {members.map((m) => (
+                <li key={m.user_id} className="flex items-center justify-between text-sm bg-gray-50 px-2 py-1 rounded-md">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={getAvatarUrl(m.user_id, m.profiles?.avatar_url)}
+                      alt="avatar"
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                    <span>
+                      {m.profiles?.display_name ?? "Unknown"}{" "}
+                      <span className="text-gray-400">@{m.profiles?.username}</span>
+                    </span>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleRemoveMember(m.user_id)}
+                  >
+                    <X size={14} className="text-red-500" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2 mt-2">
+              <Input
+                value={newMember}
+                onChange={(e) => setNewMember(e.target.value)}
+                placeholder="Enter user email"
+              />
+              <Button size="sm" onClick={handleAddMember}>
+                <UserPlus size={16} />
+              </Button>
+            </div>
+          </div>
+          <Button
+            onClick={handleSaveGroup}
+            className="bg-blue-500 text-white hover:bg-blue-600"
+          >
+            Save Changes
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
