@@ -40,7 +40,7 @@ export default function Settings() {
   }, [searchParams, navigate, toast]);
 
   return (
-    <div className="min-h-screen flex bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background text-blue-700">
+    <div className="min-h-[calc(100vh-5rem)] bg-background flex">
       {/* Sidebar */}
       <aside className="w-56 bg-white/70 backdrop-blur-md shadow-md flex flex-col py-6 gap-6">
         <div className="px-4">

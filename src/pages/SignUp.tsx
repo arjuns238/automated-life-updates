@@ -1,5 +1,3 @@
-
-
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,9 +37,9 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+    <div className="min-h-[calc(100vh-5rem)] bg-background flex items-center justify-center">
       <div className="container mx-auto px-4 py-8 max-w-md">
-        <Card className="shadow-glow">
+        <Card className="shadow-glow border border-border/60 bg-card/70 backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="w-6 h-6 text-primary" />

@@ -87,121 +87,122 @@ export default function Chats() {
   const activeGroup = groups.find((g) => g.id === activeGroupId);
 
   return (
-    <div className="flex h-screen">
-      {/* Left: Group list */}
-      <div className="w-1/3 border-r border-blue-200 flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-blue-100">
-          <h2 className="text-xl font-bold text-blue-600">Groups 💬</h2>
-          <Button
-            onClick={() => setShowCreate(true)}
-            size="sm"
-            className="flex items-center gap-1 rounded-full bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            <PlusCircle size={18} />
-            New
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {loading && <div className="text-gray-500">Loading groups...</div>}
-          {error && <div className="text-red-500">{error}</div>}
-
-          {!loading && !error && groups.length === 0 && (
-            <div className="flex flex-col items-center justify-center text-center text-gray-500 mt-10 space-y-2">
-              <p className="text-base font-medium">No group chats yet.</p>
-              <p className="text-sm text-gray-400">Start by creating your first group ➕</p>
-            </div>
-          )}
-
-          {groups.map((group) => (
-            <Card
-              key={group.id}
-              onClick={() => setActiveGroupId(group.id)}
-              className={`rounded-xl border-2 border-blue-200 transition cursor-pointer ${
-                activeGroupId === group.id ? "bg-blue-50" : "hover:bg-blue-50"
-              }`}
+    <div className="min-h-[calc(100vh-5rem)] bg-background">
+      <div className="flex h-full">
+        {/* Left: Group list */}
+        <div className="w-1/3 border-r border-blue-200 flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-blue-100">
+            <h2 className="text-xl font-bold text-blue-600">Groups 💬</h2>
+            <Button
+              onClick={() => setShowCreate(true)}
+              size="sm"
+              className="flex items-center gap-1 rounded-full bg-blue-500 hover:bg-blue-600 text-white"
             >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-blue-700">
-                  {group.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-gray-600 space-y-1">
-                <p>
-                  <span className="font-medium">Description:</span>{" "}
-                  {group.description || "No description yet"}
-                </p>
-                <p>
-                  <span className="font-medium">Interval:</span>{" "}
-                  {group.interval ? group.interval.charAt(0).toUpperCase() + group.interval.slice(1) : "Unset"}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              <PlusCircle size={18} />
+              New
+            </Button>
+          </div>
 
-      </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {loading && <div className="text-gray-500">Loading groups...</div>}
+            {error && <div className="text-red-500">{error}</div>}
 
-      {/* Right: Chat view OR summary */}
-     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-      {activeGroup ? (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto">
-            <GroupChat
-              group={activeGroup}
-              onBack={() => setActiveGroupId(null)}
-            />
+            {!loading && !error && groups.length === 0 && (
+              <div className="flex flex-col items-center justify-center text-center text-gray-500 mt-10 space-y-2">
+                <p className="text-base font-medium">No group chats yet.</p>
+                <p className="text-sm text-gray-400">Start by creating your first group ➕</p>
+              </div>
+            )}
+
+            {groups.map((group) => (
+              <Card
+                key={group.id}
+                onClick={() => setActiveGroupId(group.id)}
+                className={`rounded-xl border-2 border-blue-200 transition cursor-pointer ${
+                  activeGroupId === group.id ? "bg-blue-50" : "hover:bg-blue-50"
+                }`}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-semibold text-blue-700">
+                    {group.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-gray-600 space-y-1">
+                  <p>
+                    <span className="font-medium">Description:</span>{" "}
+                    {group.description || "No description yet"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Interval:</span>{" "}
+                    {group.interval ? group.interval.charAt(0).toUpperCase() + group.interval.slice(1) : "Unset"}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-      ) : (
-        <div className="p-6 space-y-6 overflow-y-auto h-full">
-          {/* Upcoming Chats */}
-          <section>
-            <h3 className="text-lg font-semibold text-blue-600 mb-3">
-              ⏰ Upcoming Chats
-            </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Card className="rounded-xl border-blue-200">
-                <CardContent className="p-4 text-sm text-gray-700">
-                  Example Group — Next update: Friday
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-blue-200">
-                <CardContent className="p-4 text-sm text-gray-700">
-                  Another Group — Next update: Tomorrow
-                </CardContent>
-              </Card>
-            </div>
-          </section>
 
-          {/* Recent Highlights */}
-          <section>
-            <h3 className="text-lg font-semibold text-blue-600 mb-3">
-              🌟 Recent Highlights
-            </h3>
-            <div className="space-y-3">
-              <Card className="rounded-xl border-blue-200">
-                <CardContent className="p-4 text-sm text-gray-700">
-                    <strong>Alice</strong> shared a new recipe in{" "}
-                    <em>Foodies 🍜</em>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-blue-200">
-                <CardContent className="p-4 text-sm text-gray-700">
-                    <strong>Sam</strong> finished a half-marathon update in{" "}
-                    <em>Morning Joggers 🏃‍♀️</em>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-blue-200">
-                <CardContent className="p-4 text-sm text-gray-700">
-                  Carol: “Let’s schedule the next game night 🎮” — 1d ago
-                </CardContent>
-              </Card>
+        {/* Right: Chat view OR summary */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          {activeGroup ? (
+            <div className="flex flex-col h-full">
+              <div className="flex-1 overflow-y-auto">
+                <GroupChat
+                  group={activeGroup}
+                  onBack={() => setActiveGroupId(null)}
+                />
+              </div>
             </div>
-          </section>
+          ) : (
+            <div className="p-6 space-y-6 overflow-y-auto h-full">
+              {/* Upcoming Chats */}
+              <section>
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">
+                  ⏰ Upcoming Chats
+                </h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Card className="rounded-xl border-blue-200">
+                    <CardContent className="p-4 text-sm text-gray-700">
+                      Example Group — Next update: Friday
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border-blue-200">
+                    <CardContent className="p-4 text-sm text-gray-700">
+                      Another Group — Next update: Tomorrow
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+
+              {/* Recent Highlights */}
+              <section>
+                <h3 className="text-lg font-semibold text-blue-600 mb-3">
+                  🌟 Recent Highlights
+                </h3>
+                <div className="space-y-3">
+                  <Card className="rounded-xl border-blue-200">
+                    <CardContent className="p-4 text-sm text-gray-700">
+                        <strong>Alice</strong> shared a new recipe in{" "}
+                        <em>Foodies 🍜</em>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border-blue-200">
+                    <CardContent className="p-4 text-sm text-gray-700">
+                        <strong>Sam</strong> finished a half-marathon update in{" "}
+                        <em>Morning Joggers 🏃‍♀️</em>
+                    </CardContent>
+                  </Card>
+                  <Card className="rounded-xl border-blue-200">
+                    <CardContent className="p-4 text-sm text-gray-700">
+                      Carol: “Let’s schedule the next game night 🎮” — 1d ago
+                    </CardContent>
+                  </Card>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </div>
 
       {/* Create Group Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
