@@ -246,7 +246,11 @@ export default function GroupChat({ group, onBack }) {
   if (!group) return <div>Loading group...</div>;
 
   return (
-    <div className="flex flex-col h-screen" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div
+      className="flex flex-col h-[calc(100vh-5rem)] bg-background"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-blue-200 bg-blue-50">
         <Button variant="ghost" size="sm" onClick={onBack}>
@@ -254,10 +258,18 @@ export default function GroupChat({ group, onBack }) {
         </Button>
         <h2 className="text-xl font-semibold text-blue-700">{name}</h2>
         <div className="ml-auto flex gap-2">
-          <Button size="sm" variant={activePanel === "updates" ? "default" : "ghost"} onClick={() => setActivePanel("updates")}>
+          <Button
+            size="sm"
+            variant={activePanel === "updates" ? "default" : "ghost"}
+            onClick={() => setActivePanel("updates")}
+          >
             Life Updates
           </Button>
-          <Button size="sm" variant={activePanel === "chat" ? "default" : "ghost"} onClick={() => setActivePanel("chat")}>
+          <Button
+            size="sm"
+            variant={activePanel === "chat" ? "default" : "ghost"}
+            onClick={() => setActivePanel("chat")}
+          >
             Chat
           </Button>
           <Button variant="ghost" size="sm" className="rounded-full hover:bg-blue-100">
@@ -266,11 +278,10 @@ export default function GroupChat({ group, onBack }) {
         </div>
       </div>
 
-      {/* Panels */}
+      {/* Scrollable Panel */}
       <div className="flex-1 overflow-y-auto p-4 bg-gradient-to-b from-blue-50 to-white">
         {activePanel === "updates" ? (
           <div className="space-y-4">
-            {/* Preview selected */}
             {selectedSummary && (
               <Card
                 className="border border-border/60 bg-card/70 backdrop-blur shadow-lg cursor-pointer hover:shadow-xl transition"
@@ -328,7 +339,6 @@ export default function GroupChat({ group, onBack }) {
           </div>
         ) : (
           <div>
-            {/* Chat messages */}
             {messages.map((msg, i) => {
               const isMine = msg.user_id === currentUser?.id;
               const prevMsg = messages[i - 1];
@@ -388,8 +398,8 @@ export default function GroupChat({ group, onBack }) {
         )}
       </div>
 
-      {/* Input / Dropdown */}
-      <div className="p-4 border-t border-blue-200 bg-white flex items-center gap-2">
+      {/* Fixed Bottom Input / Dropdown */}
+      <div className="sticky bottom-0 w-full p-4 border-t border-blue-200 bg-white flex items-center gap-2">
         {activePanel === "chat" ? (
           <>
             <Input

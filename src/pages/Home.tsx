@@ -6,7 +6,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   return (
-  <div className="min-h-[calc(100vh-5rem)] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background flex text-blue-700">
+    <div className="min-h-[calc(100vh-5rem)] bg-background flex text-blue-700">
       {/* Sidebar */}
       <aside className="w-56 bg-white/70 backdrop-blur-md shadow-md flex flex-col items-center py-6 gap-6">
         <nav className="flex flex-col gap-4 w-full px-4">
@@ -45,7 +45,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col">
         {/* Page Content */}
         <main className="flex-1 flex items-center justify-center">
-          <div className="flex w-full justify-center items-center" style={{ minHeight: 'calc(100vh - 0px)' }}>
+          <div className="flex w-full justify-center items-center" style={{ minHeight: 'calc(100vh - 5rem)' }}>
             <div className="bg-white/80 rounded-2xl shadow-lg p-8 max-w-xl w-full text-center border border-border/60 backdrop-blur mx-auto">
               <h2 className="text-3xl font-bold text-blue-700 mb-2">
                 Welcome back! 🌟
