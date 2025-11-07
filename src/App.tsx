@@ -25,7 +25,7 @@ const App = () => (
           <Navbar />
           <div className="pt-20">
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<Home />} />
               <Route path="/life-updates" element={<LifeUpdates />} />
               <Route path="/sign-up" element={<SignUp />} />
               <Route path="/sign-in" element={<SignIn />} />

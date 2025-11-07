@@ -11,7 +11,7 @@ from backend_utils import clean_storage_url, _safe_name
 from routers import strava
 
 load_dotenv()
-SUPABASE_URL = os.getenv("VITE_SUPABASE_URL")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
 # SUPABASE_KEY = os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET")
@@ -31,7 +31,8 @@ app.add_middleware(
 )
 
 app.include_router(strava.router, prefix="/api/strava", tags=["strava"])
-print("HEREEEE", supabase.storage.list_buckets())
+
+# print("HEREEEE", supabase.storage.list_buckets())
 
 @app.post("/summarize-update")
 async def summarize_update(
