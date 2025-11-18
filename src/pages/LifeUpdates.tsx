@@ -31,6 +31,13 @@ export default function LifeUpdates() {
   const [stravaActivities, setStravaActivities] = useState<StravaActivity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const loadingMessages = [
+    "Saving your update...",
+    "Organizing the details...",
+    "Drafting your summary...",
+    "Adding finishing touches...",
+  ];
   const { toast } = useToast();
 
   // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +91,23 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!isSubmitting) {
+      setLoadingStep(0);
+      return;
+    }
+
+    if (loadingStep >= loadingMessages.length - 1) {
+      return;
+    }
+
+    const id = setTimeout(() => {
+      setLoadingStep((prev) => Math.min(prev + 1, loadingMessages.length - 1));
+    }, 2500);
+
+    return () => clearTimeout(id);
+  }, [isSubmitting, loadingStep, loadingMessages.length]);
 
   const fetchStravaActivities = async (uid: string) => {
     setActivitiesLoading(true);
@@ -166,8 +190,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       let summaryError = null;
 
       try {
+        const enhancedSummary = `${userSummary.trim()}\n\nFocus on:\n- Weave these events into a cohesive recap\n- Call out fitness stats (distance/time) when relevant\n- Keep it upbeat and concise (1-2 sentences unless user specifies otherwise)`;
         const fd = new FormData();
-        fd.append("user_summary", userSummary.trim());
+        fd.append("user_summary", enhancedSummary);
         fd.append("update_id", String(data.id));
         photos.forEach((file) => fd.append("photos", file, file.name));
 
@@ -235,6 +260,19 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   return (
     <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
+      {isSubmitting && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 backdrop-blur">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-6 py-8 text-center shadow-2xl">
+            <div className="flex items-center gap-3 text-white">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-200" />
+              <span className="font-semibold">{loadingMessages[loadingStep]}</span>
+            </div>
+            <p className="max-w-xs text-sm text-slate-200/80">
+              Hang tight — we&apos;re saving your update and crafting a recap.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
