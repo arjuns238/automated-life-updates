@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import os
 import time
+from datetime import datetime
 from typing import Any, Optional
 
 import httpx
@@ -121,28 +122,45 @@ async def strava_post_token(data: dict) -> dict:
 def upsert_tokens(user_id: str, data: dict) -> bool:
     """Upsert Strava tokens into the 'integrations' table for the given user."""
     if not supabase:
-        return False
+        raise HTTPException(status_code=500, detail="Supabase not configured on server")
 
     try:
+        expires_at_raw = data.get("expires_at")
+        expires_at_value = None
+        if isinstance(expires_at_raw, (int, float)):
+            try:
+                expires_at_value = datetime.utcfromtimestamp(int(expires_at_raw)).isoformat()
+            except Exception:
+                expires_at_value = expires_at_raw
+        elif isinstance(expires_at_raw, str) and expires_at_raw.isdigit():
+            try:
+                expires_at_value = datetime.utcfromtimestamp(int(expires_at_raw)).isoformat()
+            except Exception:
+                expires_at_value = expires_at_raw
+        else:
+            expires_at_value = expires_at_raw
+
         payload = {
             "user_id": user_id,
             "provider": "strava",
             "access_token": data.get("access_token"),
             "refresh_token": data.get("refresh_token"),
-            "expires_at": data.get("expires_at"),
+            "expires_at": expires_at_value,
             "scope": data.get("scope"),
-            "athlete_id": (data.get("athlete") or {}).get("id"),
-            "athlete_username": (data.get("athlete") or {}).get("username"),
-            "raw": data,
+            "meta": data,
         }
-        supabase.table("integrations").upsert(
+        res = supabase.table("integrations").upsert(
             payload,
             on_conflict="user_id,provider",
         ).execute()
+        error = getattr(res, "error", None)
+        if error:
+            raise HTTPException(status_code=500, detail=f"Supabase upsert error: {error}")
         return True
     except Exception as e:
-        print("Failed to save tokens:", e)
-        return False
+        msg = getattr(e, "detail", None) or getattr(e, "message", None) or str(e)
+        print("Failed to save tokens:", msg)
+        raise HTTPException(status_code=500, detail=f"Failed to save Strava tokens: {msg}")
 
 
 def get_user_tokens(user_id: str) -> dict:
@@ -150,13 +168,29 @@ def get_user_tokens(user_id: str) -> dict:
     if not supabase:
         raise HTTPException(status_code=500, detail="Supabase not configured on server")
     try:
-        res = supabase.table("integrations").select("*").eq("user_id", user_id).eq("provider", "strava").single().execute()
-        if not res.data:
-            raise HTTPException(status_code=404, detail="No Strava integration found for user")
-        return res.data
+        res = (
+            supabase
+            .table("integrations")
+            .select("*")
+            .eq("user_id", user_id)
+            .eq("provider", "strava")
+            .limit(1)
+            .execute()
+        )
+        error = getattr(res, "error", None)
+        if error:
+            raise HTTPException(status_code=500, detail=f"Supabase error: {error}")
+        data = getattr(res, "data", None)
+        if isinstance(data, list):
+            if not data:
+                raise HTTPException(status_code=404, detail="No Strava integration found for user")
+            return data[0]
+        if isinstance(data, dict) and data:
+            return data
+        raise HTTPException(status_code=404, detail="No Strava integration found for user")
     except Exception as e:
         # If supabase throws an error object, try to surface it
-        msg = getattr(e, "message", None) or str(e)
+        msg = getattr(e, "detail", None) or getattr(e, "message", None) or str(e) or repr(e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch tokens: {msg}")
 
 
@@ -188,11 +222,36 @@ def delete_user_tokens(user_id: str) -> bool:
         raise HTTPException(status_code=500, detail=f"Failed to remove Strava connection: {msg}")
 
 
-def token_expired(expires_at: Optional[int]) -> bool:
+def parse_expires_at(value: Any) -> Optional[int]:
+    """Normalize expires_at (epoch/int, digit string, or ISO string) to epoch seconds."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        if value.isdigit():
+            try:
+                return int(value)
+            except ValueError:
+                return None
+        # Try ISO datetime (with or without offset)
+        try:
+            iso_val = value
+            if iso_val.endswith("Z"):
+                iso_val = iso_val.replace("Z", "+00:00")
+            dt = datetime.fromisoformat(iso_val)
+            return int(dt.timestamp())
+        except Exception:
+            return None
+    return None
+
+
+def token_expired(expires_at: Any) -> bool:
     """Return True if expires_at is in the past (grace of a few seconds)."""
-    if not expires_at:
+    ts = parse_expires_at(expires_at)
+    if ts is None:
         return True
-    return int(time.time()) >= (int(expires_at) - 5)
+    return int(time.time()) >= (ts - 5)
 
 
 async def strava_get_activities(access_token: str, page: int = 1, per_page: int = 30) -> list[dict]:
@@ -221,23 +280,25 @@ async def exchange_token(req: StravaTokenRequest):
     Exchange an authorization code for tokens.
     - Requires frontend to pass `user_id` (from state) to save tokens.
     """
-    client_id, client_secret, _ = get_strava_env()
+    client_id, client_secret, redirect_uri = get_strava_env()
 
     if not req.user_id:
         raise HTTPException(status_code=400, detail="user_id is required to save Strava tokens")
 
-    data = await strava_post_token(
-        {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": req.code,
-            "grant_type": "authorization_code",
-        }
-    )
+    payload = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "code": req.code,
+        "grant_type": "authorization_code",
+    }
+    if redirect_uri:
+        # Strava returns 400 invalid_grant if redirect_uri doesn't match what was used in auth
+        payload["redirect_uri"] = redirect_uri
 
-    saved = upsert_tokens(req.user_id, data)
+    data = await strava_post_token(payload)
 
-    return {**data, "saved": saved}
+    upsert_tokens(req.user_id, data)
+    return {**data, "saved": True}
 
 
 @router.post("/refresh", response_model=StravaTokenResponse)

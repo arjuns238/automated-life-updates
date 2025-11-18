@@ -12,8 +12,8 @@ const config: StravaConfig = {
   redirectUri:
     (import.meta.env.VITE_STRAVA_REDIRECT_URI as string) ||
     `${window.location.origin}/settings`,
-  // Strava scopes are space-separated; include 'read' + whatever else you need
-  scope: "read activity:read_all",
+  // Strava expects a comma-separated scope list
+  scope: "read,activity:read_all",
   // Backend base URL (so you can switch to proxy later)
   apiBase: (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000",
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -8,14 +8,29 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Activity, Loader2, Upload, Sparkles, X } from "lucide-react";
 
+type StravaActivity = {
+  id: number;
+  name: string;
+  type: string;
+  distance: number;
+  moving_time: number;
+  start_date: string;
+};
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000";
+
 export default function LifeUpdates() {
   const navigate = useNavigate();
+  const [userId, setUserId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [userSummary, setUserSummary] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [stravaActivities, setStravaActivities] = useState<StravaActivity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+  const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +73,52 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const handleRemovePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id ?? null);
+      if (user?.id) {
+        fetchStravaActivities(user.id);
+      }
+    })();
+  }, []);
+
+  const fetchStravaActivities = async (uid: string) => {
+    setActivitiesLoading(true);
+    setActivitiesError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/strava/activities?user_id=${encodeURIComponent(uid)}&per_page=5`);
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed with ${res.status}`);
+      }
+      const data = await res.json();
+      // backend returns { items: [], ... } in router; fallback to array
+      const items: StravaActivity[] = Array.isArray(data) ? data : data.items || [];
+      setStravaActivities(items);
+    } catch (e: any) {
+      console.error("Failed to fetch Strava activities", e);
+      setActivitiesError(e?.message || "Could not load Strava data");
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
+  const formatDistance = (meters: number) => {
+    const km = meters / 1000;
+    return `${km.toFixed(km >= 10 ? 0 : 1)} km`;
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.round(seconds / 60);
+    return `${mins} min`;
+  };
+
+  const insertActivity = (a: StravaActivity) => {
+    const snippet = `\n- ${a.name || "Activity"} (${a.type || "Workout"}): ${formatDistance(a.distance)} in ${formatTime(a.moving_time)} on ${new Date(a.start_date).toLocaleDateString()}.`;
+    setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
   };
 
   const handleSubmit = async () => {
@@ -206,6 +267,64 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
             Capture your highlights, add photos, and let your AI friend craft a polished recap fit for sharing.
           </p>
         </div>
+
+        {userId && (
+          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Activity className="h-5 w-5 text-green-300" />
+                Recent Strava
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                onClick={() => fetchStravaActivities(userId)}
+                disabled={activitiesLoading}
+              >
+                {activitiesLoading ? "Refreshing..." : "Refresh"}
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {activitiesError && (
+                <p className="text-sm text-rose-200">{activitiesError}</p>
+              )}
+              {!activitiesError && stravaActivities.length === 0 && (
+                <p className="text-sm text-slate-300">
+                  No recent Strava activities found. Try a refresh after your next workout.
+                </p>
+              )}
+              <div className="grid gap-3 md:grid-cols-2">
+                {stravaActivities.map((a) => (
+                  <div
+                    key={a.id}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-blue-900/20"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{a.name}</p>
+                        <p className="text-xs text-slate-300">
+                          {a.type} · {formatDistance(a.distance)} · {formatTime(a.moving_time)}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {new Date(a.start_date).toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        onClick={() => insertActivity(a)}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader>
