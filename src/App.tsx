@@ -13,6 +13,7 @@ import Home from "./pages/Home";
 import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
 import Root from "./pages/Root";
+import Timeline from "./pages/Timeline";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/summary" element={<Summary />} />
               <Route path="/chats" element={<Chats />} />
               <Route path="/home" element={<Home />} /> 
+              <Route path="/timeline" element={<Timeline />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
