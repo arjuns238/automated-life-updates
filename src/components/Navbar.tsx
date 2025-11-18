@@ -2,10 +2,18 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 const Navbar = () => {
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+
+  const navLinks = [
+    { label: "Home", to: "/home" },
+    { label: "Summary", to: "/summary" },
+    { label: "Chats", to: "/chats" },
+    { label: "Settings", to: "/settings" },
+  ];
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -26,61 +34,59 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full bg-blue-50 shadow-md flex items-center justify-between px-8 py-4 fixed top-0 left-0 z-50 transition-colors duration-300">
-      {/* Logo + Links */}
-      <div className="flex items-center gap-8">
-        <Link to="/" className="font-extrabold text-2xl text-blue-700 hover:text-blue-900 transition-colors duration-200">
+    <nav className="fixed top-0 left-0 z-50 w-full backdrop-blur-xl">
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-blue-950/90 border-b border-white/10 shadow-lg shadow-blue-900/20" />
+      <div className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <Link to="/" className="inline-flex items-center gap-2 text-lg font-semibold text-white">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 shadow-lg shadow-blue-800/40">
+            <Sparkles className="h-5 w-5" />
+          </span>
           FriendSync
         </Link>
-        <Link
-          to="/home"
-          className="text-base text-blue-600 hover:text-blue-800 transition-colors duration-200"
-        >
-          Home
-        </Link>
-        <Link
-          to="/about"
-          className="text-base text-blue-600 hover:text-blue-800 transition-colors duration-200"
-        >
-          About
-        </Link>
-        <Link
-          to="/features"
-          className="text-base text-blue-600 hover:text-blue-800 transition-colors duration-200"
-        >
-          Features
-        </Link>
-      </div>
 
-      {/* User Actions */}
-      <div className="flex items-center gap-4">
-        {user ? (
-          <>
-            <span className="text-blue-700 font-medium">{user.email}</span>
-            <Button
-              variant="default"
-              className="bg-blue-600 text-white hover:bg-blue-700"
-              onClick={() => navigate("/settings")}
+        <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10">
+          {navLinks.map(link => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="rounded-full px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
             >
-              Settings
-            </Button>
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              <span className="hidden text-sm font-medium text-slate-200 sm:block">
+                {user.email}
+              </span>
+              <Button
+                variant="secondary"
+                className="border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                onClick={() => navigate("/settings")}
+              >
+                Settings
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-slate-200 hover:bg-white/10 hover:text-white"
+                onClick={handleLogout}
+              >
+                Log Out
+              </Button>
+            </>
+          ) : (
             <Button
-              variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-100"
-              onClick={handleLogout}
+              variant="hero"
+              className="shadow-glow"
+              onClick={() => navigate("/sign-in")}
             >
-              Log Out
+              Sign In
             </Button>
-          </>
-        ) : (
-          <Button
-            variant="default"
-            className="bg-blue-600 text-white hover:bg-blue-700"
-            onClick={() => navigate("/sign-in")}
-          >
-            Sign In
-          </Button>
-        )}
+          )}
+        </div>
       </div>
     </nav>
   );

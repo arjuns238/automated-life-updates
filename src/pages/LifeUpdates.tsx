@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Sparkles } from "lucide-react";
+import { Activity, Loader2, Upload, Sparkles, X } from "lucide-react";
 
 export default function LifeUpdates() {
   const navigate = useNavigate();
@@ -173,45 +173,62 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
+
+      <div className="relative mx-auto flex max-w-5xl flex-col gap-8 px-6 py-12">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <Button
-              variant="outline"
-              onClick={() => navigate("/")}
-              className="mb-4"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/home")}
+              className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
             >
-              ← Back to Home
+              ← Back
             </Button>
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
+              <Sparkles className="h-4 w-4" />
+              Life Updates
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Life Updates</h1>
-          <p className="text-muted-foreground">
-            Share what you've been up to this month and get an AI-powered summary
+          <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
+            <Activity className="h-4 w-4 text-green-300" />
+            AI ready to summarize
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          <h1 className="text-4xl font-semibold leading-tight text-white">Share what happened</h1>
+          <p className="max-w-3xl text-slate-300">
+            Capture your highlights, add photos, and let your AI friend craft a polished recap fit for sharing.
           </p>
         </div>
 
-        <Card className="mb-8">
+        <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Upload className="h-5 w-5" />
               Create New Update
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
+              <label className="mb-2 block text-sm font-medium text-slate-200">
                 Title
               </label>
               <Input
                 placeholder="e.g., January 2024 Adventures"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
+              <label className="mb-2 block text-sm font-medium text-slate-200">
                 What did you do this month?
               </label>
               <Textarea
@@ -219,11 +236,12 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 value={userSummary}
                 onChange={(e) => setUserSummary(e.target.value)}
                 rows={6}
+                className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
+              <label className="mb-2 block text-sm font-medium text-slate-200">
                 Photos (optional)
               </label>
               <Input
@@ -231,22 +249,26 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 accept="image/*"
                 multiple
                 onChange={handlePhotoUpload}
-                className="cursor-pointer"
+                className="cursor-pointer border-white/10 bg-white/5 text-white file:text-white"
               />
               {photoPreviews.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
                   {photoPreviews.map((src, i) => (
-                    <div key={i} className="relative">
+                    <div
+                      key={i}
+                      className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-inner shadow-blue-900/20"
+                    >
                       <img
                         src={src}
                         alt={`Upload ${i + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border"
+                        className="h-28 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                       />
                       <button
                         onClick={() => handleRemovePhoto(i)}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 text-xs"
+                        className="absolute right-2 top-2 rounded-full bg-white/15 p-1 text-white backdrop-blur hover:bg-white/25"
+                        aria-label="Remove photo"
                       >
-                        ✕
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
                   ))}
@@ -257,16 +279,16 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
             <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full"
+              className="w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving & Generating Summary...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  <Sparkles className="mr-2 h-4 w-4" />
                   Save & Generate AI Summary
                 </>
               )}
@@ -275,15 +297,15 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         </Card>
 
         {aiSummary && (
-          <Card>
+          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Sparkles className="h-5 w-5 text-blue-200" />
                 AI Summary
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-foreground leading-relaxed">{aiSummary}</p>
+              <p className="leading-relaxed text-slate-100">{aiSummary}</p>
             </CardContent>
           </Card>
         )}

@@ -42,11 +42,16 @@ export const initiateStravaAuth = (userId: string) => {
  */
 
 // auth.ts (already returning non-ok text; keep it)
-export const handleStravaCallback = async (code: string, state?: string) => {
+export const handleStravaCallback = async (code: string, userId?: string) => {
+  const finalUserId = userId?.trim();
+  if (!finalUserId) {
+    throw new Error("Missing user ID for Strava token exchange");
+  }
+
   const res = await fetch(`${config.apiBase}/api/strava/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, user_id: state }),
+    body: JSON.stringify({ code, user_id: finalUserId }),
   });
 
   if (!res.ok) {
@@ -56,4 +61,30 @@ export const handleStravaCallback = async (code: string, state?: string) => {
   }
 
   return res.json();
+};
+
+export const getStravaStatus = async (userId: string) => {
+  const url = new URL(`${config.apiBase}/api/strava/status`);
+  url.searchParams.set("user_id", userId);
+
+  const res = await fetch(url.toString(), { method: "GET" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Failed to fetch Strava status: ${res.status} ${text}`);
+  }
+  return res.json() as Promise<{ connected: boolean }>;
+};
+
+export const disconnectStrava = async (userId: string) => {
+  const res = await fetch(`${config.apiBase}/api/strava/disconnect`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Failed to disconnect Strava: ${res.status} ${text}`);
+  }
+  return res.json() as Promise<{ disconnected: boolean }>;
 };

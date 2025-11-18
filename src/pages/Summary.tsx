@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowLeft, Share2, Heart, MessageCircle, Repeat2 } from "lucide-react";
+import { Activity } from "lucide-react";
 
 /** Extract #hashtags (simple) and return [cleanText, hashtags[]] */
 function splitHashtags(text: string): { clean: string; tags: string[] } {
@@ -128,73 +129,86 @@ export default function Summary() {
   const { clean, tags } = splitHashtags(aiSummary);
 
   return (
-  <div className="min-h-[calc(100vh-5rem)] bg-background">
-      {/* Soft gradient header bar */}
-      <div className="sticky top-0 z-10 border-b">
-        <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/15 via-background to-background">
-          <div className="container mx-auto px-4 py-3 flex items-center justify-between max-w-2xl">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
+    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
+
+      <div className="relative mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/home")}
+              className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
+            >
+              <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <h1 className="text-sm font-semibold tracking-wide">Your Summary</h1>
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
+              <Sparkles className="h-4 w-4" />
+              Your Summary
             </div>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Share2 className="w-4 h-4" />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
+              <Activity className="h-4 w-4 text-green-300" />
+              Freshly generated
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              <Share2 className="h-4 w-4" />
               Share
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* Post card */}
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
-        <Card className="border border-border/60 bg-card/70 backdrop-blur shadow-lg">
+        <Card className="border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader className="pb-3">
             <div className="flex items-start gap-3">
-              {/* glowy avatar */}
-              <div className="relative w-11 h-11 rounded-full overflow-hidden shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary via-pink-500 to-amber-400 animate-pulse opacity-30" />
-                <div className="relative w-full h-full rounded-full bg-gradient-hero flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-primary-foreground" />
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-cyan-400 opacity-30 blur-md" />
+                <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-hero text-primary-foreground">
+                  <Sparkles className="h-5 w-5" />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm font-semibold leading-none">AI Companion</CardTitle>
-                  <span className="text-xs text-muted-foreground">· just now</span>
+                  <CardTitle className="text-sm font-semibold leading-none text-white">
+                    AI Companion
+                  </CardTitle>
+                  <span className="text-xs text-slate-300">· just now</span>
                 </div>
-                <div className="text-xs text-muted-foreground">@goodvibes</div>
+                <div className="text-xs text-slate-400">@goodvibes</div>
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="pt-0">
             <div className="pl-14">
-              {/* body */}
               {clean ? (
-                <p className="text-[15px] leading-relaxed whitespace-pre-line">
+                <p className="text-[15px] leading-relaxed whitespace-pre-line text-slate-100">
                   {clean}
                 </p>
               ) : (
-                <div className="text-center py-10">
-                  <Sparkles className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-60" />
-                  <p className="text-muted-foreground">No summary yet — create a life update!</p>
+                <div className="py-10 text-center">
+                  <Sparkles className="mx-auto mb-3 h-10 w-10 text-slate-500" />
+                  <p className="text-slate-400">No summary yet — create a life update!</p>
                 </div>
               )}
 
-              {/* media (inside post) */}
               {photos.length > 0 && <MediaGrid photos={photos} />}
 
-              {/* hashtag chips */}
               {tags.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {tags.slice(0, 6).map((t, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border bg-background/60 hover:bg-background transition"
+                      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-100"
                       title={t}
                     >
                       <span className="opacity-70">#</span>
@@ -204,22 +218,21 @@ export default function Summary() {
                 </div>
               )}
 
-              {/* action bar */}
-              <div className="mt-4 flex items-center justify-between pr-2 text-xs text-muted-foreground">
-                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
-                  <MessageCircle className="w-4 h-4" />
+              <div className="mt-4 flex items-center justify-between pr-2 text-xs text-slate-400">
+                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
+                  <MessageCircle className="h-4 w-4" />
                   <span>Comment</span>
                 </button>
-                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
-                  <Repeat2 className="w-4 h-4" />
+                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
+                  <Repeat2 className="h-4 w-4" />
                   <span>Repost</span>
                 </button>
-                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
-                  <Heart className="w-4 h-4" />
+                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
+                  <Heart className="h-4 w-4" />
                   <span>Like</span>
                 </button>
-                <button className="flex items-center gap-2 hover:text-foreground transition-colors">
-                  <Share2 className="w-4 h-4" />
+                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
+                  <Share2 className="h-4 w-4" />
                   <span>Share</span>
                 </button>
               </div>
@@ -227,15 +240,18 @@ export default function Summary() {
           </CardContent>
         </Card>
 
-        {/* footer actions */}
-        <div className="mt-6 flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             onClick={() => navigate("/life-updates")}
-            className="flex-1 bg-gradient-hero text-primary-foreground shadow-glow hover:shadow-warm transition-all"
+            className="flex-1 min-w-[180px] bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40"
           >
             Create New Update
           </Button>
-          <Button variant="outline" onClick={() => navigate("/")} className="px-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/home")}
+            className="min-w-[120px] rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+          >
             Home
           </Button>
         </div>
