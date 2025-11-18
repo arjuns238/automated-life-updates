@@ -302,7 +302,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         <div className="space-y-3">
           <h1 className="text-4xl font-semibold leading-tight text-white">Share what happened</h1>
           <p className="max-w-3xl text-slate-300">
-            Capture your highlights, add photos, and let your AI friend craft a polished recap fit for sharing.
+            Capture your highlights, add photos, and let us craft a polished recap fit for sharing.
           </p>
         </div>
 
