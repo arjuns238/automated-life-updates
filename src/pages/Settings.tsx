@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Link2, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -11,25 +11,43 @@ import {
   getStravaStatus,
   disconnectStrava,
 } from "@/integrations/strava/auth";
-import { Sparkles, ShieldCheck } from "lucide-react";
+import {
+  initiateSpotifyAuth,
+  handleSpotifyCallback,
+  getSpotifyStatus,
+  disconnectSpotify,
+} from "@/integrations/spotify/auth";
 
 export default function Settings() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const spotifyClientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID as string | undefined;
 
-  const [connecting, setConnecting] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(false);
-  const [connected, setConnected] = useState<boolean>(() => {
+  const [stravaConnecting, setStravaConnecting] = useState(false);
+  const [stravaDisconnecting, setStravaDisconnecting] = useState(false);
+  const [checkingStravaStatus, setCheckingStravaStatus] = useState(false);
+  const [stravaConnected, setStravaConnected] = useState<boolean>(() => {
     const v = localStorage.getItem("strava_connected");
     return v === "true";
   });
 
-  // Track whether we've already processed this callback to avoid duplicate exchanges
-  const handledRef = useRef(false);
+  const [spotifyConnecting, setSpotifyConnecting] = useState(false);
+  const [spotifyDisconnecting, setSpotifyDisconnecting] = useState(false);
+  const [checkingSpotifyStatus, setCheckingSpotifyStatus] = useState(false);
+  const [spotifyConnected, setSpotifyConnected] = useState<boolean>(() => {
+    const v = localStorage.getItem("spotify_connected");
+    return v === "true";
+  });
 
-  // Get current signed-in user once
+  const stravaHandledRef = useRef(false);
+  const spotifyHandledRef = useRef(false);
+  const lastOAuthRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    lastOAuthRef.current = localStorage.getItem("last_oauth_provider");
+  }, []);
+
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     (async () => {
@@ -42,14 +60,13 @@ export default function Settings() {
     })();
   }, []);
 
-  // Sync the stored status with the backend once we know the user ID
   useEffect(() => {
     if (!userId) return;
 
     let cancelled = false;
     (async () => {
       try {
-        setCheckingStatus(true);
+        setCheckingStravaStatus(true);
         const status = await getStravaStatus(userId);
         if (cancelled) return;
 
@@ -58,12 +75,12 @@ export default function Settings() {
         } else {
           localStorage.removeItem("strava_connected");
         }
-        setConnected(status.connected);
+        setStravaConnected(status.connected);
       } catch (error) {
         console.error("Failed to fetch Strava status", error);
       } finally {
         if (!cancelled) {
-          setCheckingStatus(false);
+          setCheckingStravaStatus(false);
         }
       }
     })();
@@ -73,72 +90,138 @@ export default function Settings() {
     };
   }, [userId]);
 
-  // Handle Strava redirect (?code=...&state=... or ?error=access_denied)
+  useEffect(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setCheckingSpotifyStatus(true);
+        const status = await getSpotifyStatus(userId);
+        if (cancelled) return;
+
+        if (status.connected) {
+          localStorage.setItem("spotify_connected", "true");
+        } else {
+          localStorage.removeItem("spotify_connected");
+        }
+        setSpotifyConnected(status.connected);
+      } catch (error) {
+        console.error("Failed to fetch Spotify status", error);
+      } finally {
+        if (!cancelled) {
+          setCheckingSpotifyStatus(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  // Handle callback (?code=...&state=... or ?error=access_denied)
   useEffect(() => {
     const code = searchParams.get("code");
-    const state = searchParams.get("state"); // we pass userId as state
+    const state = searchParams.get("state");
     const error = searchParams.get("error");
+    const lastProvider = lastOAuthRef.current;
 
-    // If user canceled on Strava
     if (error) {
       toast({
         variant: "destructive",
-        title: "Strava authorization cancelled",
+        title: "Authorization cancelled",
         description: "You can try connecting again anytime.",
       });
       navigate("/settings", { replace: true });
       return;
     }
 
-    if (!code) return;           // nothing to process
-    if (handledRef.current) return; // prevent duplicate call
-    handledRef.current = true;
+    if (!code) return;
+    if (stravaHandledRef.current && spotifyHandledRef.current) return;
 
-    (async () => {
-      try {
-        setConnecting(true);
+    const processCallbacks = async () => {
+      let processed = false;
+      let errorShown = false;
 
-        // Safety: if state present, ensure it matches current user
-        if (userId && state && userId !== state) {
-          console.warn("OAuth state mismatch:", { userId, state });
+      // If we know the user initiated Spotify, skip Strava to avoid invalid code errors
+      if (!stravaHandledRef.current && lastProvider !== "spotify") {
+        stravaHandledRef.current = true;
+        setStravaConnecting(true);
+        try {
+          if (userId && state && userId !== state) {
+            throw new Error("Session changed during Strava authorization");
+          }
+
+          await handleStravaCallback(code, state ?? userId ?? undefined);
+          localStorage.setItem("strava_connected", "true");
+          setStravaConnected(true);
+          toast({
+            title: "Connected to Strava 🎉",
+            description: "Your activities can now be synced.",
+          });
+          processed = true;
+        } catch (e) {
+          console.warn("Strava callback not processed, trying Spotify next if needed:", e);
           localStorage.removeItem("strava_connected");
-          setConnected(false);
+          setStravaConnected(false);
+          if (e instanceof Error && e.message.includes("Session changed")) {
+            toast({
+              variant: "destructive",
+              title: "Session changed",
+              description: "Your session changed during authorization. Please try connecting again.",
+            });
+            errorShown = true;
+          }
+        } finally {
+          setStravaConnecting(false);
+        }
+      }
+
+      if (!processed && !spotifyHandledRef.current) {
+        spotifyHandledRef.current = true;
+        setSpotifyConnecting(true);
+        try {
+          if (userId && state && userId !== state) {
+            throw new Error("Session changed during Spotify authorization");
+          }
+
+          await handleSpotifyCallback(code, state ?? userId ?? undefined);
+          localStorage.setItem("spotify_connected", "true");
+          setSpotifyConnected(true);
+          toast({
+            title: "Connected to Spotify 🎶",
+            description: "We can now pull in your listening history.",
+          });
+          processed = true;
+        } catch (e) {
+          console.error("Spotify connect failed:", e);
+          localStorage.removeItem("spotify_connected");
+          setSpotifyConnected(false);
           toast({
             variant: "destructive",
-            title: "Session changed",
-            description:
-              "Your session changed during authorization. Please try connecting again.",
+            title: "Connection failed",
+            description: "We couldn’t complete the connection. Please try again.",
           });
-          return;
+          errorShown = true;
+        } finally {
+          setSpotifyConnecting(false);
         }
+      }
 
-        // Exchange the code for tokens on backend
-        await handleStravaCallback(code, state ?? userId ?? undefined);
-
-        // Mark as connected (local flag for now)
-        localStorage.setItem("strava_connected", "true");
-        setConnected(true);
-
-        toast({
-          title: "Connected to Strava 🎉",
-          description: "Your activities can now be synced.",
-        });
-      } catch (e) {
-        console.error("Strava connect failed:", e);
-        localStorage.removeItem("strava_connected");
-        setConnected(false);
+      if (!processed && !errorShown) {
         toast({
           variant: "destructive",
           title: "Connection failed",
-          description:
-            "We couldn’t complete the connection. Please try again.",
+          description: "We couldn’t complete the connection. Please try again.",
         });
-      } finally {
-        setConnecting(false);
-        // Clean query params from the URL so reloads don't reuse the code
-        navigate("/settings", { replace: true });
       }
-    })();
+
+      navigate("/settings", { replace: true });
+      localStorage.removeItem("last_oauth_provider");
+    };
+
+    void processCallbacks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, userId, navigate, toast]);
 
@@ -153,7 +236,7 @@ export default function Settings() {
         });
         return;
       }
-      initiateStravaAuth(user.id); // include user id in OAuth state
+      initiateStravaAuth(user.id);
     } catch (e) {
       console.error(e);
       toast({
@@ -162,11 +245,51 @@ export default function Settings() {
         description: "Please try again.",
       });
     }
+
+    localStorage.setItem("last_oauth_provider", "strava");
   };
 
-  const canConnect = useMemo(
-    () => !!userId && !connected && !checkingStatus,
-    [userId, connected, checkingStatus],
+  const handleSpotifyConnect = async () => {
+    if (!spotifyClientId) {
+      toast({
+        variant: "destructive",
+        title: "Spotify not configured",
+        description: "Add VITE_SPOTIFY_CLIENT_ID to your .env, then restart the dev server.",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        toast({
+          variant: "destructive",
+          title: "Sign in required",
+          description: "Please sign in to connect Spotify.",
+        });
+        return;
+      }
+      initiateSpotifyAuth(user.id);
+    } catch (e) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Couldn’t start Spotify connect",
+        description: "Please try again.",
+      });
+    }
+
+    localStorage.setItem("last_oauth_provider", "spotify");
+  };
+
+  const canConnectStrava = useMemo(
+    () => !!userId && !stravaConnected && !checkingStravaStatus,
+    [userId, stravaConnected, checkingStravaStatus],
+  );
+
+  const canConnectSpotify = useMemo(
+    () => !!userId && !!spotifyClientId && !spotifyConnected && !checkingSpotifyStatus,
+    [userId, spotifyClientId, spotifyConnected, checkingSpotifyStatus],
   );
 
   const handleStravaDisconnect = async () => {
@@ -180,10 +303,10 @@ export default function Settings() {
     }
 
     try {
-      setDisconnecting(true);
+      setStravaDisconnecting(true);
       await disconnectStrava(userId);
       localStorage.removeItem("strava_connected");
-      setConnected(false);
+      setStravaConnected(false);
       toast({
         title: "Strava disconnected",
         description: "You can reconnect anytime.",
@@ -196,7 +319,38 @@ export default function Settings() {
         description: "Something went wrong. Please try again.",
       });
     } finally {
-      setDisconnecting(false);
+      setStravaDisconnecting(false);
+    }
+  };
+
+  const handleSpotifyDisconnect = async () => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Sign in required",
+        description: "Please sign in to disconnect Spotify.",
+      });
+      return;
+    }
+
+    try {
+      setSpotifyDisconnecting(true);
+      await disconnectSpotify(userId);
+      localStorage.removeItem("spotify_connected");
+      setSpotifyConnected(false);
+      toast({
+        title: "Spotify disconnected",
+        description: "You can reconnect anytime.",
+      });
+    } catch (error) {
+      console.error("Failed to disconnect Spotify", error);
+      toast({
+        variant: "destructive",
+        title: "Couldn’t disconnect",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setSpotifyDisconnecting(false);
     }
   };
 
@@ -266,12 +420,12 @@ export default function Settings() {
                 </div>
               </div>
 
-              {connected ? (
+              {stravaConnected ? (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 text-white">
                     <CheckCircle2 className="h-5 w-5" />
                     <span className="text-sm font-medium">
-                      {checkingStatus ? "Checking..." : "Connected"}
+                      {checkingStravaStatus ? "Checking..." : "Connected"}
                     </span>
                   </div>
                   <Button
@@ -279,9 +433,9 @@ export default function Settings() {
                     size="sm"
                     onClick={handleStravaDisconnect}
                     className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
-                    disabled={disconnecting || checkingStatus}
+                    disabled={stravaDisconnecting || checkingStravaStatus}
                   >
-                    {disconnecting ? (
+                    {stravaDisconnecting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Disconnecting...
@@ -297,9 +451,69 @@ export default function Settings() {
                   size="sm"
                   onClick={handleStravaConnect}
                   className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
-                  disabled={!canConnect || connecting}
+                  disabled={!canConnectStrava || stravaConnecting}
                 >
-                  {connecting ? (
+                  {stravaConnecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect"
+                  )}
+                </Button>
+              )}
+            </div>
+
+            <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#1DB954]/85 via-[#1ed760]/60 to-[#0f3d2e]/75 p-4 shadow-lg shadow-emerald-900/30 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/spotify-icon.svg"
+                  alt="Spotify"
+                  className="h-10 w-10 rounded-full bg-black/10 p-1.5 shadow-lg shadow-black/20"
+                />
+                <div>
+                  <p className="font-medium text-white">Spotify</p>
+                  <p className="text-sm text-white/80">
+                    Bring in your recent listening
+                  </p>
+                </div>
+              </div>
+
+              {spotifyConnected ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-white">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="text-sm font-medium">
+                      {checkingSpotifyStatus ? "Checking..." : "Connected"}
+                    </span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleSpotifyDisconnect}
+                    className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                    disabled={spotifyDisconnecting || checkingSpotifyStatus}
+                  >
+                    {spotifyDisconnecting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Disconnecting...
+                      </>
+                    ) : (
+                      "Disconnect"
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleSpotifyConnect}
+                  className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                  disabled={!canConnectSpotify || spotifyConnecting}
+                >
+                  {spotifyConnecting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Connecting...

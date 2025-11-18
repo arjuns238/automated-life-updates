@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Loader2, Upload, Sparkles, X } from "lucide-react";
+import { Activity, Loader2, Upload, Sparkles, X, Music2, Headphones } from "lucide-react";
+import { getSpotifyStatus } from "@/integrations/spotify/auth";
 
 type StravaActivity = {
   id: number;
@@ -15,6 +16,29 @@ type StravaActivity = {
   distance: number;
   moving_time: number;
   start_date: string;
+};
+
+type SpotifyTrack = {
+  id: string;
+  name: string;
+  artists: string;
+  album?: string;
+  image?: string;
+  url?: string;
+};
+
+type SpotifyArtist = {
+  id: string;
+  name: string;
+  image?: string;
+  genres?: string[];
+  url?: string;
+};
+
+type SpotifyRecent = {
+  id: string;
+  played_at: string;
+  track: SpotifyTrack;
 };
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000";
@@ -31,6 +55,12 @@ export default function LifeUpdates() {
   const [stravaActivities, setStravaActivities] = useState<StravaActivity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
+  const [spotifyError, setSpotifyError] = useState<string | null>(null);
+  const [spotifyTopTracks, setSpotifyTopTracks] = useState<SpotifyTrack[]>([]);
+  const [spotifyTopArtists, setSpotifyTopArtists] = useState<SpotifyArtist[]>([]);
+  const [spotifyRecent, setSpotifyRecent] = useState<SpotifyRecent[]>([]);
   const [loadingStep, setLoadingStep] = useState(0);
   const loadingMessages = [
     "Saving your update...",
@@ -88,6 +118,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       setUserId(user?.id ?? null);
       if (user?.id) {
         fetchStravaActivities(user.id);
+        fetchSpotifyData(user.id);
       }
     })();
   }, []);
@@ -130,6 +161,45 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 
+  const fetchSpotifyData = async (uid: string) => {
+    setSpotifyLoading(true);
+    setSpotifyError(null);
+    try {
+      const status = await getSpotifyStatus(uid);
+      setSpotifyConnected(status.connected);
+      if (!status.connected) {
+        setSpotifyTopTracks([]);
+        setSpotifyTopArtists([]);
+        setSpotifyRecent([]);
+        setSpotifyError("Spotify not connected. Connect in Settings to pull listening data.");
+        return;
+      }
+
+      const topRes = await fetch(`${API_BASE}/api/spotify/top?user_id=${encodeURIComponent(uid)}&limit=5&time_range=short_term`);
+      if (!topRes.ok) {
+        const text = await topRes.text().catch(() => "");
+        throw new Error(text || `Failed to load Spotify top tracks (${topRes.status})`);
+      }
+      const top = await topRes.json();
+
+      const recentRes = await fetch(`${API_BASE}/api/spotify/recent?user_id=${encodeURIComponent(uid)}&limit=6`);
+      if (!recentRes.ok) {
+        const text = await recentRes.text().catch(() => "");
+        throw new Error(text || `Failed to load recent listening (${recentRes.status})`);
+      }
+      const recent = await recentRes.json();
+
+      setSpotifyTopTracks(top.tracks || []);
+      setSpotifyTopArtists(top.artists || []);
+      setSpotifyRecent(recent.items || []);
+    } catch (e: any) {
+      console.error("Failed to fetch Spotify data", e);
+      setSpotifyError(e?.message || "Could not load Spotify data");
+    } finally {
+      setSpotifyLoading(false);
+    }
+  };
+
   const formatDistance = (meters: number) => {
     const km = meters / 1000;
     return `${km.toFixed(km >= 10 ? 0 : 1)} km`;
@@ -142,6 +212,24 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   const insertActivity = (a: StravaActivity) => {
     const snippet = `\n- ${a.name || "Activity"} (${a.type || "Workout"}): ${formatDistance(a.distance)} in ${formatTime(a.moving_time)} on ${new Date(a.start_date).toLocaleDateString()}.`;
+    setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
+  };
+
+  const insertTrack = (t: SpotifyTrack, label = "Top track") => {
+    const snippet = `\n- ${label}: "${t.name}" by ${t.artists}${t.album ? ` (${t.album})` : ""}.`;
+    setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
+  };
+
+  const insertArtist = (a: SpotifyArtist) => {
+    const genres = a.genres && a.genres.length ? ` • Genres: ${a.genres.slice(0, 2).join(", ")}` : "";
+    const snippet = `\n- Top artist: ${a.name}${genres}.`;
+    setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
+  };
+
+  const insertRecent = (r: SpotifyRecent) => {
+    const when = new Date(r.played_at).toLocaleString();
+    const t = r.track;
+    const snippet = `\n- Recently played: "${t.name}" by ${t.artists} on ${when}.`;
     setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
   };
 
@@ -295,9 +383,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
           </div>
           <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
             <Activity className="h-4 w-4 text-green-300" />
-            AI ready to summarize
-          </span>
-        </div>
+                AI ready to summarize
+              </span>
+            </div>
 
         <div className="space-y-3">
           <h1 className="text-4xl font-semibold leading-tight text-white">Share what happened</h1>
@@ -359,6 +447,162 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {userId && (
+          <Card className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-[#1DB954]/75 via-[#18a94b]/65 to-[#0f2d20]/70 shadow-2xl backdrop-blur-xl">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent opacity-70" />
+            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Music2 className="h-5 w-5 text-emerald-200" />
+                Spotify Highlights
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                onClick={() => fetchSpotifyData(userId)}
+                disabled={spotifyLoading}
+              >
+                {spotifyLoading ? "Refreshing..." : "Refresh"}
+              </Button>
+            </CardHeader>
+            <CardContent className="relative z-10 space-y-3">
+              {spotifyError && (
+                <p className="text-sm text-emerald-50/90">
+                  {spotifyError}{" "}
+                  {!spotifyConnected && (
+                    <button
+                      onClick={() => navigate("/settings")}
+                      className="underline decoration-emerald-200/80 underline-offset-4"
+                    >
+                      Go to Settings
+                    </button>
+                  )}
+                </p>
+              )}
+              {!spotifyError && spotifyConnected && spotifyTopTracks.length === 0 && spotifyRecent.length === 0 && (
+                <p className="text-sm text-emerald-50/90">
+                  No listening data yet. Try a refresh after you listen to something new.
+                </p>
+              )}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-white">
+                    <Headphones className="h-4 w-4 text-emerald-100" />
+                    <p className="text-sm font-semibold">Top tracks (last month)</p>
+                  </div>
+                  <div className="space-y-2">
+                    {spotifyTopTracks.map((t) => (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          {t.image ? (
+                            <img src={t.image} alt={t.name} className="h-10 w-10 rounded-md object-cover" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                          )}
+                          <div>
+                            <p className="text-sm font-semibold text-white">{t.name}</p>
+                            <p className="text-xs text-emerald-50/80">{t.artists}</p>
+                            {t.album && <p className="text-xs text-emerald-50/60">Album: {t.album}</p>}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                          onClick={() => insertTrack(t, "Top track")}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-white">
+                    <Sparkles className="h-4 w-4 text-emerald-100" />
+                    <p className="text-sm font-semibold">Top artists</p>
+                  </div>
+                  <div className="space-y-2">
+                    {spotifyTopArtists.map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          {a.image ? (
+                            <img src={a.image} alt={a.name} className="h-10 w-10 rounded-md object-cover" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                          )}
+                          <div>
+                            <p className="text-sm font-semibold text-white">{a.name}</p>
+                            {a.genres && a.genres.length > 0 && (
+                              <p className="text-xs text-emerald-50/80">
+                                {a.genres.slice(0, 2).join(", ")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                          onClick={() => insertArtist(a)}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-white">
+                  <Music2 className="h-4 w-4 text-emerald-100" />
+                  <p className="text-sm font-semibold">Recent listening</p>
+                </div>
+                <div className="grid gap-2 md:grid-cols-2">
+                  {spotifyRecent.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        {r.track.image ? (
+                          <img src={r.track.image} alt={r.track.name} className="h-10 w-10 rounded-md object-cover" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-white">{r.track.name}</p>
+                          <p className="text-xs text-emerald-50/80">{r.track.artists}</p>
+                          <p className="text-xs text-emerald-50/60">
+                            {new Date(r.played_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                        onClick={() => insertRecent(r)}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
