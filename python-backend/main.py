@@ -10,6 +10,7 @@ from typing import List
 from backend_utils import clean_storage_url, _safe_name
 from routers import strava
 from routers import spotify
+from routers import google_calendar
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -33,6 +34,7 @@ app.add_middleware(
 
 app.include_router(strava.router, prefix="/api/strava", tags=["strava"])
 app.include_router(spotify.router, prefix="/api/spotify", tags=["spotify"])
+app.include_router(google_calendar.router, prefix="/api/google", tags=["google"])
 
 # print("HEREEEE", supabase.storage.list_buckets())
 

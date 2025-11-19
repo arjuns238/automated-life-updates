@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Loader2, Upload, Sparkles, X, Music2, Headphones } from "lucide-react";
+import { Activity, Loader2, Upload, Sparkles, X, Music2, Headphones, CalendarDays, MapPin } from "lucide-react";
 import { getSpotifyStatus } from "@/integrations/spotify/auth";
+import { getGoogleStatus, fetchGoogleEvents } from "@/integrations/google/auth";
 
 type StravaActivity = {
   id: number;
@@ -42,7 +43,99 @@ type SpotifyRecent = {
   track: SpotifyTrack;
 };
 
+type GoogleCalendarEvent = {
+  id: string;
+  summary?: string;
+  start?: { date?: string; dateTime?: string; timeZone?: string };
+  end?: { date?: string; dateTime?: string; timeZone?: string };
+  location?: string;
+};
+
+type SanitizedCalendarEvent = {
+  id: string;
+  label: string;
+  window: string;
+  location?: string;
+};
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000";
+
+const sanitizeSummary = (summary?: string) => {
+  if (!summary) return "Calendar event";
+  let text = summary;
+  const sensitivePatterns = [
+    /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+    /\bhttps?:\/\/\S+/gi,
+    /\bmeet\.google\.com\/\S+/gi,
+    /\bzoom\.us\/\S+/gi,
+    /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
+  ];
+  sensitivePatterns.forEach((pattern) => {
+    text = text.replace(pattern, "").trim();
+  });
+  const noisyWords = ["sync", "1:1", "interview", "standup", "meeting", "touchpoint", "check-in"];
+  const parts = text
+    .split(/\s+/)
+    .filter((word) => !noisyWords.some((noise) => word.toLowerCase().includes(noise)));
+  const cleaned = parts.join(" ").replace(/\s{2,}/g, " ").trim();
+  return cleaned || "Calendar event";
+};
+
+const sanitizeLocation = (location?: string) => {
+  if (!location) return undefined;
+  const coarse = location.replace(/\d+/g, "").split(",")[0]?.trim();
+  if (!coarse) return undefined;
+  const words = coarse.split(/\s+/).slice(0, 3).join(" ");
+  return words || undefined;
+};
+
+const parseCalendarDate = (entry?: { date?: string; dateTime?: string; timeZone?: string }) => {
+  if (!entry) return null;
+  if (entry.dateTime) return new Date(entry.dateTime);
+  if (entry.date) return new Date(`${entry.date}T00:00:00`);
+  return null;
+};
+
+const describeCalendarWindow = (
+  start?: { date?: string; dateTime?: string; timeZone?: string },
+  end?: { date?: string; dateTime?: string; timeZone?: string },
+) => {
+  const startDate = parseCalendarDate(start);
+  if (!startDate) return "Coming up soon";
+
+  const bucket = startDate.getDate() <= 10 ? "Early" : startDate.getDate() <= 20 ? "Mid" : "Late";
+  const month = startDate.toLocaleString(undefined, { month: "long" });
+  const shortDate = startDate.toLocaleString(undefined, { month: "short", day: "numeric" });
+  const timeString = start?.dateTime
+    ? startDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
+
+  const endDate = parseCalendarDate(end);
+  const spansMultipleDays =
+    endDate && Math.abs(endDate.getTime() - startDate.getTime()) > 1000 * 60 * 60 * 24;
+  if (spansMultipleDays && endDate) {
+    const endShort = endDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return `${bucket} ${month} (${shortDate} – ${endShort})`;
+  }
+
+  return timeString ? `${bucket} ${month} • ${timeString}` : `${bucket} ${month} (${shortDate})`;
+};
+
+const sanitizeCalendarEvents = (events: GoogleCalendarEvent[]): SanitizedCalendarEvent[] => {
+  return events
+    .map((event) => {
+      const label = sanitizeSummary(event.summary);
+      const window = describeCalendarWindow(event.start, event.end);
+      const location = sanitizeLocation(event.location);
+      return {
+        id: event.id || `${label}-${window}`,
+        label,
+        window,
+        location,
+      };
+    })
+    .filter((event) => !!event.label);
+};
 
 export default function LifeUpdates() {
   const navigate = useNavigate();
@@ -64,6 +157,11 @@ export default function LifeUpdates() {
   const [spotifyRecent, setSpotifyRecent] = useState<SpotifyRecent[]>([]);
   const hasSpotifyData =
     spotifyTopTracks.length > 0 || spotifyTopArtists.length > 0 || spotifyRecent.length > 0;
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [googleEvents, setGoogleEvents] = useState<SanitizedCalendarEvent[]>([]);
+  const hasGoogleEvents = googleEvents.length > 0;
   const [selectedTrack, setSelectedTrack] = useState<SpotifyTrack | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const loadingMessages = [
@@ -73,7 +171,7 @@ export default function LifeUpdates() {
     "Adding finishing touches...",
   ];
   const { toast } = useToast();
-  const [integrationTab, setIntegrationTab] = useState<"strava" | "spotify">("strava");
+  const [integrationTab, setIntegrationTab] = useState<"strava" | "spotify" | "calendar">("strava");
 
   // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   const files = e.target.files ? Array.from(e.target.files) : [];
@@ -124,6 +222,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (user?.id) {
         fetchStravaActivities(user.id);
         fetchSpotifyData(user.id);
+        fetchGoogleData(user.id);
       }
     })();
   }, []);
@@ -206,6 +305,30 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   };
 
+  const fetchGoogleData = async (uid: string) => {
+    setGoogleLoading(true);
+    setGoogleError(null);
+    try {
+      const status = await getGoogleStatus(uid);
+      setGoogleConnected(status.connected);
+      if (!status.connected) {
+        setGoogleEvents([]);
+        setGoogleError("Google Calendar not connected. Connect in Settings to pull events.");
+        return;
+      }
+
+      const { events = [] } = await fetchGoogleEvents(uid, { maxResults: 5 });
+      const cleaned = sanitizeCalendarEvents(events as GoogleCalendarEvent[]);
+      setGoogleEvents(cleaned);
+      setGoogleError(null);
+    } catch (e: any) {
+      console.error("Failed to fetch Google Calendar data", e);
+      setGoogleError(e?.message || "Could not load Google Calendar events");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   const formatDistance = (meters: number) => {
     const km = meters / 1000;
     return `${km.toFixed(km >= 10 ? 0 : 1)} km`;
@@ -241,6 +364,23 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const snippet = `\n- Recently played: "${t.name}" by ${t.artists} on ${when}.`;
     setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
   };
+
+  const insertCalendarEvent = (event: SanitizedCalendarEvent) => {
+    const snippet = `\n- Upcoming: ${event.label} (${event.window})${
+      event.location ? ` near ${event.location}` : ""
+    }.`;
+    setUserSummary((prev) => (prev ? `${prev}${snippet}` : snippet.trim()));
+  };
+
+  const integrationGradientClass = useMemo(() => {
+    if (integrationTab === "spotify") {
+      return "bg-gradient-to-r from-[#0e2b1f]/60 via-[#1DB954]/40 to-[#0b1f17]/60";
+    }
+    if (integrationTab === "calendar") {
+      return "bg-gradient-to-r from-[#0f1a2e]/40 via-[#4285F4]/35 to-[#0b1a32]/55";
+    }
+    return "bg-gradient-to-r from-orange-500/15 via-amber-400/8 to-blue-500/8";
+  }, [integrationTab]);
 
   const handleSubmit = async () => {
     if (!title.trim() || !userSummary.trim()) {
@@ -419,11 +559,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         {userId && (
           <Card className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
             <div
-              className={`pointer-events-none absolute inset-0 transition-colors ${
-                integrationTab === "spotify"
-                  ? "bg-gradient-to-r from-[#0e2b1f]/60 via-[#1DB954]/40 to-[#0b1f17]/60"
-                  : "bg-gradient-to-r from-orange-500/15 via-amber-400/8 to-blue-500/8"
-              }`}
+              className={`pointer-events-none absolute inset-0 transition-colors ${integrationGradientClass}`}
             />
             <CardHeader className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-white">
@@ -454,6 +590,18 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                   onClick={() => setIntegrationTab("spotify")}
                 >
                   Spotify
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`rounded-full px-3 text-sm ${
+                    integrationTab === "calendar"
+                      ? "border border-white/20 bg-white/15 text-white shadow-sm"
+                      : "text-slate-100"
+                  }`}
+                  onClick={() => setIntegrationTab("calendar")}
+                >
+                  Calendar
                 </Button>
               </div>
             </CardHeader>
@@ -696,6 +844,83 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                         Refresh
                       </Button>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {integrationTab === "calendar" && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-white">
+                      <CalendarDays className="h-5 w-5 text-sky-200" />
+                      <p className="text-sm font-semibold">Google Calendar</p>
+                      {googleConnected && (
+                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-blue-50">
+                          Connected
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      onClick={() => userId && fetchGoogleData(userId)}
+                      disabled={googleLoading}
+                    >
+                      {googleLoading ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+
+                  {googleError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-blue-200/30 bg-black/20 px-3 py-2 text-sm text-blue-50/90">
+                      <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-blue-200" />
+                      <p>
+                        {googleError}{" "}
+                        {!googleConnected && (
+                          <button
+                            onClick={() => navigate("/settings")}
+                            className="underline decoration-blue-200/80 underline-offset-4"
+                          >
+                            Go to Settings
+                          </button>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {hasGoogleEvents ? (
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {googleEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-blue-900/20"
+                        >
+                          <p className="text-sm font-semibold text-white">{event.label}</p>
+                          <p className="text-xs text-slate-300">{event.window}</p>
+                          {event.location && (
+                            <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                              <MapPin className="h-3 w-3 text-slate-300" />
+                              {event.location}
+                            </p>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-3 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            onClick={() => insertCalendarEvent(event)}
+                          >
+                            Add
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    !googleError && (
+                      <p className="text-sm text-slate-300">
+                        No upcoming events were found in the next week. Try refreshing or adding a
+                        new event to your calendar.
+                      </p>
+                    )
                   )}
                 </div>
               )}

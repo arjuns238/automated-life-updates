@@ -17,12 +17,19 @@ import {
   getSpotifyStatus,
   disconnectSpotify,
 } from "@/integrations/spotify/auth";
+import {
+  initiateGoogleAuth,
+  handleGoogleCallback,
+  getGoogleStatus,
+  disconnectGoogle,
+} from "@/integrations/google/auth";
 
 export default function Settings() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const spotifyClientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID as string | undefined;
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
   const [stravaConnecting, setStravaConnecting] = useState(false);
   const [stravaDisconnecting, setStravaDisconnecting] = useState(false);
@@ -40,8 +47,17 @@ export default function Settings() {
     return v === "true";
   });
 
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+  const [googleDisconnecting, setGoogleDisconnecting] = useState(false);
+  const [checkingGoogleStatus, setCheckingGoogleStatus] = useState(false);
+  const [googleConnected, setGoogleConnected] = useState<boolean>(() => {
+    const v = localStorage.getItem("google_connected");
+    return v === "true";
+  });
+
   const stravaHandledRef = useRef(false);
   const spotifyHandledRef = useRef(false);
+  const googleHandledRef = useRef(false);
   const lastOAuthRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -81,6 +97,36 @@ export default function Settings() {
       } finally {
         if (!cancelled) {
           setCheckingStravaStatus(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setCheckingGoogleStatus(true);
+        const status = await getGoogleStatus(userId);
+        if (cancelled) return;
+
+        if (status.connected) {
+          localStorage.setItem("google_connected", "true");
+        } else {
+          localStorage.removeItem("google_connected");
+        }
+        setGoogleConnected(status.connected);
+      } catch (error) {
+        console.error("Failed to fetch Google status", error);
+      } finally {
+        if (!cancelled) {
+          setCheckingGoogleStatus(false);
         }
       }
     })();
@@ -138,14 +184,13 @@ export default function Settings() {
     }
 
     if (!code) return;
-    if (stravaHandledRef.current && spotifyHandledRef.current) return;
+    if (stravaHandledRef.current && spotifyHandledRef.current && googleHandledRef.current) return;
 
     const processCallbacks = async () => {
       let processed = false;
       let errorShown = false;
 
-      // If we know the user initiated Spotify, skip Strava to avoid invalid code errors
-      if (!stravaHandledRef.current && lastProvider !== "spotify") {
+      if (!stravaHandledRef.current && (!lastProvider || lastProvider === "strava")) {
         stravaHandledRef.current = true;
         setStravaConnecting(true);
         try {
@@ -178,7 +223,7 @@ export default function Settings() {
         }
       }
 
-      if (!processed && !spotifyHandledRef.current) {
+      if (!processed && !spotifyHandledRef.current && (!lastProvider || lastProvider === "spotify")) {
         spotifyHandledRef.current = true;
         setSpotifyConnecting(true);
         try {
@@ -206,6 +251,37 @@ export default function Settings() {
           errorShown = true;
         } finally {
           setSpotifyConnecting(false);
+        }
+      }
+
+      if (!processed && !googleHandledRef.current && (!lastProvider || lastProvider === "google")) {
+        googleHandledRef.current = true;
+        setGoogleConnecting(true);
+        try {
+          if (userId && state && userId !== state) {
+            throw new Error("Session changed during Google authorization");
+          }
+
+          await handleGoogleCallback(code, state ?? userId ?? undefined);
+          localStorage.setItem("google_connected", "true");
+          setGoogleConnected(true);
+          toast({
+            title: "Google Calendar connected 📅",
+            description: "We’ll keep an eye on your upcoming events.",
+          });
+          processed = true;
+        } catch (e) {
+          console.error("Google connect failed:", e);
+          localStorage.removeItem("google_connected");
+          setGoogleConnected(false);
+          toast({
+            variant: "destructive",
+            title: "Connection failed",
+            description: "We couldn’t complete the connection. Please try again.",
+          });
+          errorShown = true;
+        } finally {
+          setGoogleConnecting(false);
         }
       }
 
@@ -282,6 +358,39 @@ export default function Settings() {
     localStorage.setItem("last_oauth_provider", "spotify");
   };
 
+  const handleGoogleConnect = async () => {
+    if (!googleClientId) {
+      toast({
+        variant: "destructive",
+        title: "Google not configured",
+        description: "Add VITE_GOOGLE_CLIENT_ID to your .env, then restart the dev server.",
+      });
+      return;
+    }
+
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        toast({
+          variant: "destructive",
+          title: "Sign in required",
+          description: "Please sign in to connect Google Calendar.",
+        });
+        return;
+      }
+      initiateGoogleAuth(user.id);
+    } catch (e) {
+      console.error(e);
+      toast({
+        variant: "destructive",
+        title: "Couldn’t start Google connect",
+        description: "Please try again.",
+      });
+    }
+
+    localStorage.setItem("last_oauth_provider", "google");
+  };
+
   const canConnectStrava = useMemo(
     () => !!userId && !stravaConnected && !checkingStravaStatus,
     [userId, stravaConnected, checkingStravaStatus],
@@ -290,6 +399,11 @@ export default function Settings() {
   const canConnectSpotify = useMemo(
     () => !!userId && !!spotifyClientId && !spotifyConnected && !checkingSpotifyStatus,
     [userId, spotifyClientId, spotifyConnected, checkingSpotifyStatus],
+  );
+
+  const canConnectGoogle = useMemo(
+    () => !!userId && !!googleClientId && !googleConnected && !checkingGoogleStatus,
+    [userId, googleClientId, googleConnected, checkingGoogleStatus],
   );
 
   const handleStravaDisconnect = async () => {
@@ -351,6 +465,37 @@ export default function Settings() {
       });
     } finally {
       setSpotifyDisconnecting(false);
+    }
+  };
+
+  const handleGoogleDisconnect = async () => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Sign in required",
+        description: "Please sign in to disconnect Google Calendar.",
+      });
+      return;
+    }
+
+    try {
+      setGoogleDisconnecting(true);
+      await disconnectGoogle(userId);
+      localStorage.removeItem("google_connected");
+      setGoogleConnected(false);
+      toast({
+        title: "Google Calendar disconnected",
+        description: "You can reconnect anytime.",
+      });
+    } catch (error) {
+      console.error("Failed to disconnect Google", error);
+      toast({
+        variant: "destructive",
+        title: "Couldn’t disconnect",
+        description: "Something went wrong. Please try again.",
+      });
+    } finally {
+      setGoogleDisconnecting(false);
     }
   };
 
@@ -514,6 +659,66 @@ export default function Settings() {
                   disabled={!canConnectSpotify || spotifyConnecting}
                 >
                   {spotifyConnecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    "Connect"
+                  )}
+                </Button>
+              )}
+            </div>
+
+            <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#4285F4]/80 via-[#34A853]/70 to-[#FABB05]/60 p-4 shadow-lg shadow-blue-900/30 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/google-calendar-icon.svg"
+                  alt="Google Calendar"
+                  className="h-10 w-10 rounded-lg bg-white/20 p-1.5 shadow-lg shadow-black/20"
+                />
+                <div>
+                  <p className="font-medium text-white">Google Calendar</p>
+                  <p className="text-sm text-white/80">
+                    Pull in upcoming events & plans
+                  </p>
+                </div>
+              </div>
+
+              {googleConnected ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-white">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="text-sm font-medium">
+                      {checkingGoogleStatus ? "Checking..." : "Connected"}
+                    </span>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleGoogleDisconnect}
+                    className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                    disabled={googleDisconnecting || checkingGoogleStatus}
+                  >
+                    {googleDisconnecting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Disconnecting...
+                      </>
+                    ) : (
+                      "Disconnect"
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleGoogleConnect}
+                  className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                  disabled={!canConnectGoogle || googleConnecting}
+                >
+                  {googleConnecting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Connecting...
