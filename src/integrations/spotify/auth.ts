@@ -27,7 +27,8 @@ export const initiateSpotifyAuth = (userId: string) => {
     response_type: "code",
     scope: config.scope,
     state: userId,
-    show_dialog: "false",
+    // Always show the Spotify account picker/consent dialog so users can switch accounts after disconnecting.
+    show_dialog: "true",
   });
   const authUrl = `https://accounts.spotify.com/authorize?${params.toString()}`;
   window.location.href = authUrl;

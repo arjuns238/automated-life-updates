@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,15 @@ function MediaGrid({ photos }: { photos: string[] }) {
 type LocationState = {
   aiSummary?: string;
   photo_urls?: string[];
+  selectedTrack?: {
+    id: string;
+    name: string;
+    artists: string;
+    album?: string;
+    image?: string;
+    preview_url?: string;
+    url?: string;
+  } | null;
 };
 
 export default function Summary() {
@@ -125,6 +134,87 @@ export default function Summary() {
       return [];
     }
   }, [state.photo_urls]);
+
+  const selectedTrack = useMemo(() => {
+    if (state.selectedTrack) return state.selectedTrack;
+    try {
+      const raw = localStorage.getItem("selected_track");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }, [state.selectedTrack]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
+
+  const attachAudio = (url: string) => {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.addEventListener("ended", () => setIsPlaying(false));
+    audio.addEventListener("pause", () => setIsPlaying(false));
+    audio.addEventListener("play", () => {
+      setIsPlaying(true);
+      setPlayError(null);
+    });
+    audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
+    return audio;
+  };
+
+  useEffect(() => {
+    if (!selectedTrack?.preview_url) {
+      setIsPlaying(false);
+      return;
+    }
+    const audio = attachAudio(selectedTrack.preview_url);
+
+    // Try to autoplay the preview in the background; browsers may block without prior interaction.
+    audio
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false));
+
+    return () => {
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, [selectedTrack]);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (!selectedTrack) return;
+    if (selectedTrack.preview_url) {
+      if (!audioRef.current) {
+        attachAudio(selectedTrack.preview_url);
+      }
+      const audio = audioRef.current;
+      if (!audio) return;
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        audio
+          .play()
+          .then(() => {
+            setIsPlaying(true);
+            setPlayError(null);
+          })
+          .catch((err) => {
+            console.warn("Preview playback blocked:", err);
+            setPlayError("Tap Play to start the preview (your browser blocked autoplay).");
+            setIsPlaying(false);
+          });
+      }
+    } else if (selectedTrack.url) {
+      window.open(selectedTrack.url, "_blank", "noopener,noreferrer");
+    }
+  };
 
   const { clean, tags } = splitHashtags(aiSummary);
 
@@ -166,6 +256,63 @@ export default function Summary() {
             </Button>
           </div>
         </div>
+
+        {selectedTrack && (
+          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Sparkles className="h-5 w-5 text-emerald-200" />
+                Featured Track
+              </CardTitle>
+              {selectedTrack.url && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  onClick={() => window.open(selectedTrack.url, "_blank", "noopener,noreferrer")}
+                >
+                  Open in Spotify
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                {selectedTrack.image ? (
+                  <img
+                    src={selectedTrack.image}
+                    alt={selectedTrack.name}
+                    className="h-14 w-14 rounded-xl object-cover shadow-lg shadow-emerald-900/30"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-xl bg-emerald-900/40" />
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-white">{selectedTrack.name}</p>
+                  <p className="text-xs text-emerald-50/80">{selectedTrack.artists}</p>
+                  {selectedTrack.album && (
+                    <p className="text-[11px] text-emerald-50/70">{selectedTrack.album}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                  disabled={!selectedTrack.preview_url && !selectedTrack.url}
+                  onClick={togglePlay}
+                >
+                  {isPlaying ? "Pause Preview" : selectedTrack.preview_url ? "Play Preview" : "Open Spotify"}
+                </Button>
+              </div>
+              {playError && (
+                <p className="text-xs text-amber-100/90">
+                  {playError}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader className="pb-3">

@@ -439,6 +439,7 @@ async def top(
       "artists": ", ".join([a.get("name", "") for a in t.get("artists", []) if a]),
       "album": (t.get("album") or {}).get("name"),
       "image": ((t.get("album") or {}).get("images") or [{}])[0].get("url"),
+      "preview_url": t.get("preview_url"),
       "url": (t.get("external_urls") or {}).get("spotify"),
     }
     for t in tracks_data.get("items", [])

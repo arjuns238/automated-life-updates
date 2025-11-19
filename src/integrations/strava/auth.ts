@@ -30,7 +30,8 @@ export const initiateStravaAuth = (userId: string) => {
     response_type: "code",
     scope: config.scope,                           // space-separated; will be URL-encoded
     state: userId,                                 // critical: links tokens → user
-    approval_prompt: "auto",                       // or "force" to force the consent screen
+    // Force Strava to show the account/consent screen so users can switch accounts after disconnecting.
+    approval_prompt: "force",
   });
   const authUrl = `https://www.strava.com/oauth/authorize?${params.toString()}`;
   window.location.href = authUrl;

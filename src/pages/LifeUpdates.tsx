@@ -24,6 +24,7 @@ type SpotifyTrack = {
   artists: string;
   album?: string;
   image?: string;
+  preview_url?: string;
   url?: string;
 };
 
@@ -61,6 +62,9 @@ export default function LifeUpdates() {
   const [spotifyTopTracks, setSpotifyTopTracks] = useState<SpotifyTrack[]>([]);
   const [spotifyTopArtists, setSpotifyTopArtists] = useState<SpotifyArtist[]>([]);
   const [spotifyRecent, setSpotifyRecent] = useState<SpotifyRecent[]>([]);
+  const hasSpotifyData =
+    spotifyTopTracks.length > 0 || spotifyTopArtists.length > 0 || spotifyRecent.length > 0;
+  const [selectedTrack, setSelectedTrack] = useState<SpotifyTrack | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const loadingMessages = [
     "Saving your update...",
@@ -69,6 +73,7 @@ export default function LifeUpdates() {
     "Adding finishing touches...",
   ];
   const { toast } = useToast();
+  const [integrationTab, setIntegrationTab] = useState<"strava" | "spotify">("strava");
 
   // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   const files = e.target.files ? Array.from(e.target.files) : [];
@@ -192,6 +197,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSpotifyTopTracks(top.tracks || []);
       setSpotifyTopArtists(top.artists || []);
       setSpotifyRecent(recent.items || []);
+      setSpotifyError(null);
     } catch (e: any) {
       console.error("Failed to fetch Spotify data", e);
       setSpotifyError(e?.message || "Could not load Spotify data");
@@ -218,6 +224,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const insertTrack = (t: SpotifyTrack, label = "Top track") => {
     const snippet = `\n- ${label}: "${t.name}" by ${t.artists}${t.album ? ` (${t.album})` : ""}.`;
     setUserSummary(prev => (prev ? `${prev}${snippet}` : snippet.trim()));
+    if (!selectedTrack) {
+      setSelectedTrack(t);
+    }
   };
 
   const insertArtist = (a: SpotifyArtist) => {
@@ -323,17 +332,30 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
           title: "Success!",
           description: "Your life update has been saved and summarized",
         });
+        if (selectedTrack) {
+          localStorage.setItem("selected_track", JSON.stringify(selectedTrack));
+        } else {
+          localStorage.removeItem("selected_track");
+        }
         console.log("At LifeUpdates.tsx -> Navigating to summary with:", summaryData.ai_summary);
         localStorage.setItem("aiSummary", summaryData.ai_summary);
         localStorage.setItem("photo_urls", JSON.stringify(summaryData.photo_urls));
         localStorage.setItem("last_update_id", String(summaryData.updateId)); // handy for the fallback fetch
-        navigate("/summary", { state: { aiSummary: summaryData.ai_summary, photo_urls: summaryData.photo_urls, update_id: summaryData.updateId } });
+        navigate("/summary", {
+          state: {
+            aiSummary: summaryData.ai_summary,
+            photo_urls: summaryData.photo_urls,
+            update_id: summaryData.updateId,
+            selectedTrack,
+          },
+        });
       }
 
       // Reset form
       setTitle("");
       setUserSummary("");
       setPhotos([]);
+      setSelectedTrack(null);
     } catch (error) {
       console.error("Error saving update:", error);
       toast({
@@ -383,9 +405,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
           </div>
           <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
             <Activity className="h-4 w-4 text-green-300" />
-                AI ready to summarize
-              </span>
-            </div>
+            AI ready to summarize
+          </span>
+        </div>
 
         <div className="space-y-3">
           <h1 className="text-4xl font-semibold leading-tight text-white">Share what happened</h1>
@@ -395,215 +417,288 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
 
         {userId && (
-          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="flex items-center gap-2 text-white">
+          <Card className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+            <div
+              className={`pointer-events-none absolute inset-0 transition-colors ${
+                integrationTab === "spotify"
+                  ? "bg-gradient-to-r from-[#0e2b1f]/60 via-[#1DB954]/40 to-[#0b1f17]/60"
+                  : "bg-gradient-to-r from-orange-500/15 via-amber-400/8 to-blue-500/8"
+              }`}
+            />
+            <CardHeader className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-white">
                 <Activity className="h-5 w-5 text-green-300" />
-                Recent Strava
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                onClick={() => fetchStravaActivities(userId)}
-                disabled={activitiesLoading}
-              >
-                {activitiesLoading ? "Refreshing..." : "Refresh"}
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {activitiesError && (
-                <p className="text-sm text-rose-200">{activitiesError}</p>
-              )}
-              {!activitiesError && stravaActivities.length === 0 && (
-                <p className="text-sm text-slate-300">
-                  No recent Strava activities found. Try a refresh after your next workout.
-                </p>
-              )}
-              <div className="grid gap-3 md:grid-cols-2">
-                {stravaActivities.map((a) => (
-                  <div
-                    key={a.id}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-blue-900/20"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-semibold text-white">{a.name}</p>
-                        <p className="text-xs text-slate-300">
-                          {a.type} · {formatDistance(a.distance)} · {formatTime(a.moving_time)}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {new Date(a.start_date).toLocaleString()}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                        onClick={() => insertActivity(a)}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                <CardTitle className="text-white">Integrations</CardTitle>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {userId && (
-          <Card className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-[#1DB954]/75 via-[#18a94b]/65 to-[#0f2d20]/70 shadow-2xl backdrop-blur-xl">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent opacity-70" />
-            <CardHeader className="relative z-10 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Music2 className="h-5 w-5 text-emerald-200" />
-                Spotify Highlights
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                onClick={() => fetchSpotifyData(userId)}
-                disabled={spotifyLoading}
-              >
-                {spotifyLoading ? "Refreshing..." : "Refresh"}
-              </Button>
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`rounded-full px-3 text-sm ${
+                    integrationTab === "strava"
+                      ? "border border-white/20 bg-white/15 text-white shadow-sm"
+                      : "text-slate-100"
+                  }`}
+                  onClick={() => setIntegrationTab("strava")}
+                >
+                  Strava
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`rounded-full px-3 text-sm ${
+                    integrationTab === "spotify"
+                      ? "border border-white/20 bg-white/15 text-white shadow-sm"
+                      : "text-slate-100"
+                  }`}
+                  onClick={() => setIntegrationTab("spotify")}
+                >
+                  Spotify
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="relative z-10 space-y-3">
-              {spotifyError && (
-                <p className="text-sm text-emerald-50/90">
-                  {spotifyError}{" "}
-                  {!spotifyConnected && (
-                    <button
-                      onClick={() => navigate("/settings")}
-                      className="underline decoration-emerald-200/80 underline-offset-4"
+
+            <CardContent className="relative z-10 space-y-4">
+              {integrationTab === "strava" && (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-white">
+                      <Activity className="h-5 w-5 text-green-300" />
+                      <p className="text-sm font-semibold">Recent Strava</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      onClick={() => fetchStravaActivities(userId)}
+                      disabled={activitiesLoading}
                     >
-                      Go to Settings
-                    </button>
+                      {activitiesLoading ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+
+                  {activitiesError && (
+                    <p className="text-sm text-rose-200">{activitiesError}</p>
                   )}
-                </p>
-              )}
-              {!spotifyError && spotifyConnected && spotifyTopTracks.length === 0 && spotifyRecent.length === 0 && (
-                <p className="text-sm text-emerald-50/90">
-                  No listening data yet. Try a refresh after you listen to something new.
-                </p>
-              )}
-
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-white">
-                    <Headphones className="h-4 w-4 text-emerald-100" />
-                    <p className="text-sm font-semibold">Top tracks (last month)</p>
-                  </div>
-                  <div className="space-y-2">
-                    {spotifyTopTracks.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          {t.image ? (
-                            <img src={t.image} alt={t.name} className="h-10 w-10 rounded-md object-cover" />
-                          ) : (
-                            <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
-                          )}
-                          <div>
-                            <p className="text-sm font-semibold text-white">{t.name}</p>
-                            <p className="text-xs text-emerald-50/80">{t.artists}</p>
-                            {t.album && <p className="text-xs text-emerald-50/60">Album: {t.album}</p>}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                          onClick={() => insertTrack(t, "Top track")}
-                        >
-                          Add
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-white">
-                    <Sparkles className="h-4 w-4 text-emerald-100" />
-                    <p className="text-sm font-semibold">Top artists</p>
-                  </div>
-                  <div className="space-y-2">
-                    {spotifyTopArtists.map((a) => (
+                  {!activitiesError && stravaActivities.length === 0 && (
+                    <p className="text-sm text-slate-300">
+                      No recent Strava activities found. Try a refresh after your next workout.
+                    </p>
+                  )}
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {stravaActivities.map((a) => (
                       <div
                         key={a.id}
-                        className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                        className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-blue-900/20"
                       >
-                        <div className="flex items-center gap-3">
-                          {a.image ? (
-                            <img src={a.image} alt={a.name} className="h-10 w-10 rounded-md object-cover" />
-                          ) : (
-                            <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
-                          )}
+                        <div className="flex items-center justify-between gap-2">
                           <div>
                             <p className="text-sm font-semibold text-white">{a.name}</p>
-                            {a.genres && a.genres.length > 0 && (
-                              <p className="text-xs text-emerald-50/80">
-                                {a.genres.slice(0, 2).join(", ")}
-                              </p>
-                            )}
+                            <p className="text-xs text-slate-300">
+                              {a.type} · {formatDistance(a.distance)} · {formatTime(a.moving_time)}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {new Date(a.start_date).toLocaleString()}
+                            </p>
                           </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            onClick={() => insertActivity(a)}
+                          >
+                            Add
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                          onClick={() => insertArtist(a)}
-                        >
-                          Add
-                        </Button>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-white">
-                  <Music2 className="h-4 w-4 text-emerald-100" />
-                  <p className="text-sm font-semibold">Recent listening</p>
-                </div>
-                <div className="grid gap-2 md:grid-cols-2">
-                  {spotifyRecent.map((r) => (
-                    <div
-                      key={r.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+              {integrationTab === "spotify" && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-white">
+                      <Music2 className="h-5 w-5 text-emerald-200" />
+                      <p className="text-sm font-semibold">Spotify Highlights</p>
+                      {spotifyConnected && (
+                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-emerald-50">
+                          Connected
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      onClick={() => userId && fetchSpotifyData(userId)}
+                      disabled={spotifyLoading}
                     >
-                      <div className="flex items-center gap-3">
-                        {r.track.image ? (
-                          <img src={r.track.image} alt={r.track.name} className="h-10 w-10 rounded-md object-cover" />
-                        ) : (
-                          <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                      {spotifyLoading ? "Refreshing..." : "Refresh"}
+                    </Button>
+                  </div>
+
+                  {spotifyError && (
+                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200/30 bg-black/15 px-3 py-2 text-sm text-emerald-50/90">
+                      <Headphones className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                      <p>
+                        {spotifyError}{" "}
+                        {!spotifyConnected && (
+                          <button
+                            onClick={() => navigate("/settings")}
+                            className="underline decoration-emerald-200/80 underline-offset-4"
+                          >
+                            Go to Settings
+                          </button>
                         )}
+                      </p>
+                    </div>
+                  )}
+
+                  {hasSpotifyData && (
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-white">
+                          <Headphones className="h-4 w-4 text-emerald-100" />
+                          <p className="text-sm font-semibold">Top tracks</p>
+                        </div>
+                        <div className="space-y-2">
+                          {spotifyTopTracks.map((t) => (
+                            <div
+                              key={t.id}
+                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                            >
+                              <div className="flex items-center gap-3">
+                                {t.image ? (
+                                  <img src={t.image} alt={t.name} className="h-10 w-10 rounded-md object-cover" />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-semibold text-white">{t.name}</p>
+                                  <p className="text-xs text-emerald-50/80">{t.artists}</p>
+                                  {t.album && (
+                                    <p className="text-[11px] text-emerald-50/70">{t.album}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                                onClick={() => insertTrack(t, "Top track")}
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-white">
+                          <Sparkles className="h-4 w-4 text-emerald-100" />
+                          <p className="text-sm font-semibold">Top artists</p>
+                        </div>
+                        <div className="space-y-2">
+                          {spotifyTopArtists.map((a) => (
+                            <div
+                              key={a.id}
+                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                            >
+                              <div className="flex items-center gap-3">
+                                {a.image ? (
+                                  <img src={a.image} alt={a.name} className="h-10 w-10 rounded-md object-cover" />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-semibold text-white">{a.name}</p>
+                                  {a.genres && a.genres.length > 0 && (
+                                    <p className="text-xs text-emerald-50/80">
+                                      {a.genres.slice(0, 2).join(", ")}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                                onClick={() => insertArtist(a)}
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {hasSpotifyData && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-white">
+                        <Music2 className="h-4 w-4 text-emerald-100" />
+                        <p className="text-sm font-semibold">Recent listening</p>
+                      </div>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {spotifyRecent.map((r) => (
+                          <div
+                            key={r.id}
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              {r.track.image ? (
+                                <img src={r.track.image} alt={r.track.name} className="h-10 w-10 rounded-md object-cover" />
+                              ) : (
+                                <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
+                              )}
+                              <div>
+                                <p className="text-sm font-semibold text-white">{r.track.name}</p>
+                                <p className="text-xs text-emerald-50/80">{r.track.artists}</p>
+                                <p className="text-xs text-emerald-50/60">
+                                  {new Date(r.played_at).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                              onClick={() => insertRecent(r)}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {!spotifyError && !hasSpotifyData && (
+                    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-emerald-50/90">
+                      <div className="flex items-center gap-2">
+                        <Headphones className="h-4 w-4 text-emerald-200" />
                         <div>
-                          <p className="text-sm font-semibold text-white">{r.track.name}</p>
-                          <p className="text-xs text-emerald-50/80">{r.track.artists}</p>
-                          <p className="text-xs text-emerald-50/60">
-                            {new Date(r.played_at).toLocaleString()}
-                          </p>
+                          <p className="font-medium text-white">No listening data yet</p>
+                          <p className="text-xs text-emerald-50/80">Start listening and hit refresh to pull it in.</p>
                         </div>
                       </div>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                        onClick={() => insertRecent(r)}
+                        className="border-white/20 bg-white/5 text-white hover:bg-white/10"
+                        onClick={() => userId && fetchSpotifyData(userId)}
+                        disabled={spotifyLoading}
                       >
-                        Add
+                        Refresh
                       </Button>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         )}
