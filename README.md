@@ -27,8 +27,3 @@ uvicorn main:app --reload --port 8000
 # In another terminal, run the frontend (from repo root)
 npm run dev
 ```
-
-Visit the displayed Vite dev URL (typically http://localhost:5173).
-
-## Project links
-- Lovable project: https://lovable.dev/projects/aef9c645-d23a-44de-892a-30d7c1007de0
