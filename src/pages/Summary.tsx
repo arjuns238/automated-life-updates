@@ -257,63 +257,6 @@ export default function Summary() {
           </div>
         </div>
 
-        {selectedTrack && (
-          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Sparkles className="h-5 w-5 text-emerald-200" />
-                Featured Track
-              </CardTitle>
-              {selectedTrack.url && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  onClick={() => window.open(selectedTrack.url, "_blank", "noopener,noreferrer")}
-                >
-                  Open in Spotify
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                {selectedTrack.image ? (
-                  <img
-                    src={selectedTrack.image}
-                    alt={selectedTrack.name}
-                    className="h-14 w-14 rounded-xl object-cover shadow-lg shadow-emerald-900/30"
-                  />
-                ) : (
-                  <div className="h-14 w-14 rounded-xl bg-emerald-900/40" />
-                )}
-                <div>
-                  <p className="text-sm font-semibold text-white">{selectedTrack.name}</p>
-                  <p className="text-xs text-emerald-50/80">{selectedTrack.artists}</p>
-                  {selectedTrack.album && (
-                    <p className="text-[11px] text-emerald-50/70">{selectedTrack.album}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
-                  disabled={!selectedTrack.preview_url && !selectedTrack.url}
-                  onClick={togglePlay}
-                >
-                  {isPlaying ? "Pause Preview" : selectedTrack.preview_url ? "Play Preview" : "Open Spotify"}
-                </Button>
-              </div>
-              {playError && (
-                <p className="text-xs text-amber-100/90">
-                  {playError}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         <Card className="border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader className="pb-3">
             <div className="flex items-start gap-3">
@@ -337,6 +280,45 @@ export default function Summary() {
 
           <CardContent className="pt-0">
             <div className="pl-14">
+              {selectedTrack && (
+                <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-emerald-900/20 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    {selectedTrack.image ? (
+                      <img
+                        src={selectedTrack.image}
+                        alt={selectedTrack.name}
+                        className="h-12 w-12 rounded-xl object-cover shadow-lg shadow-emerald-900/30"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-xl bg-emerald-900/40" />
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-white">Featured Track</p>
+                      <p className="text-sm text-white">{selectedTrack.name}</p>
+                      <p className="text-xs text-emerald-50/80">{selectedTrack.artists}</p>
+                      {selectedTrack.album && (
+                        <p className="text-[11px] text-emerald-50/70">{selectedTrack.album}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                      disabled={!selectedTrack.preview_url && !selectedTrack.url}
+                      onClick={togglePlay}
+                    >
+                      {isPlaying ? "Pause Preview" : selectedTrack.preview_url ? "Play Preview" : "Open Spotify"}
+                    </Button>
+                  </div>
+                  {playError && (
+                    <p className="text-xs text-amber-100/90">
+                      {playError}
+                    </p>
+                  )}
+                </div>
+              )}
               {clean ? (
                 <p className="text-[15px] leading-relaxed whitespace-pre-line text-slate-100">
                   {clean}
