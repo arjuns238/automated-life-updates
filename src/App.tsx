@@ -14,6 +14,7 @@ import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
 import Root from "./pages/Root";
 import Timeline from "./pages/Timeline";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -26,15 +27,64 @@ const App = () => (
           <Navbar />
           <div className="pt-20">
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/life-updates" element={<LifeUpdates />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/life-updates"
+                element={
+                  <ProtectedRoute>
+                    <LifeUpdates />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/sign-up" element={<SignUp />} />
               <Route path="/sign-in" element={<SignIn />} />
-              <Route path="/summary" element={<Summary />} />
-              <Route path="/chats" element={<Chats />} />
-              <Route path="/home" element={<Home />} /> 
-              <Route path="/timeline" element={<Timeline />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route
+                path="/summary"
+                element={
+                  <ProtectedRoute>
+                    <Summary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chats"
+                element={
+                  <ProtectedRoute>
+                    <Chats />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/home"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              /> 
+              <Route
+                path="/timeline"
+                element={
+                  <ProtectedRoute>
+                    <Timeline />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
