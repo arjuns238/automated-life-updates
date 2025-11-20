@@ -27,3 +27,11 @@ uvicorn main:app --reload --port 8000
 # In another terminal, run the frontend (from repo root)
 npm run dev
 ```
+
+## Progressive Web App
+
+The Vite frontend now ships with [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/):
+
+1. During development run `npm run dev` as usual — the plugin's development service worker is automatically enabled so you can test install/offline flows locally.
+2. For a production-like test, run `npm run build && npm run preview` and open the preview URL in Chrome or Edge. Use the browser's "Install App" button (or the Application tab in DevTools) to install.
+3. When new builds ship, the service worker updates itself (`registerType: autoUpdate`). Users see the fresh content on the next navigation; check the console logs for refresh/offline-ready messages while developing.
