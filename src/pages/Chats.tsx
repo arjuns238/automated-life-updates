@@ -1,7 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PlusCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PlusCircle,
+  Sparkles,
+  Users2,
+  CalendarDays,
+  Search,
+  ChevronLeft,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,15 +26,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import GroupChat from "@/components/GroupChat";
-import { Sparkles, Radio } from "lucide-react";
+
+type Group = {
+  id: string;
+  name: string;
+  description: string | null;
+  interval?: string | null;
+};
+
+const sampleHighlights = [
+  "Pick a group to catch up on shared updates",
+  "Weekly nudges help everyone chime in",
+  "Tap the plus button to start a new chat",
+];
 
 export default function Chats() {
-  const [groups, setGroups] = useState<any[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
-  // popup state
+  // create dialog state
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -42,14 +63,39 @@ export default function Chats() {
     setError(null);
     const { data, error } = await supabase
       .from("groups")
-      .select("id, name, description, interval");
+      .select("id, name, description, interval")
+      .order("created_at", { ascending: true });
+
     if (error) setError(error.message);
-    setGroups(data ?? []);
+    setGroups((data as Group[]) ?? []);
     setLoading(false);
   }
 
+  useEffect(() => {
+    if (!loading && groups.length > 0 && !activeGroupId && !hasAutoSelected) {
+      setActiveGroupId(groups[0].id);
+      setHasAutoSelected(true);
+    }
+  }, [groups, loading, activeGroupId, hasAutoSelected]);
+
   async function handleCreateGroup() {
     if (!newName.trim()) return;
+
+    const {
+      data: userData,
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      setError(userError.message);
+      return;
+    }
+
+    const user = userData.user;
+    if (!user) {
+      setError("You must be signed in to create a group.");
+      return;
+    }
 
     const { data: group, error } = await supabase
       .from("groups")
@@ -57,6 +103,7 @@ export default function Chats() {
         name: newName,
         description: newDescription,
         interval: newInterval,
+        created_by: user.id,
       })
       .select()
       .single();
@@ -64,174 +111,181 @@ export default function Chats() {
     if (error) {
       setError(error.message);
     } else if (group) {
-      // add creator as member
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("group_members").insert({
-          group_id: group.id,
-          user_id: user.id,
-          role: "owner",
-        });
+      const { error: memberError } = await supabase.from("group_members").insert({
+        group_id: group.id,
+        user_id: user.id,
+        role: "owner",
+      });
+      if (memberError) {
+        setError(memberError.message);
+        return;
       }
 
-      setGroups((prev) => [...prev, group]);
+      setGroups((prev) => [...prev, group as Group]);
       setActiveGroupId(group.id);
+      setHasAutoSelected(true);
     }
 
-    // reset
     setNewName("");
     setNewDescription("");
     setNewInterval("weekly");
     setShowCreate(false);
   }
 
-  const activeGroup = groups.find((g) => g.id === activeGroupId);
+  const filteredGroups = useMemo(() => {
+    if (!searchTerm.trim()) return groups;
+    return groups.filter((group) =>
+      group.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [groups, searchTerm]);
+
+  const activeGroup = groups.find((g) => g.id === activeGroupId) || null;
+
+  const readableInterval = (value?: string | null) => {
+    if (!value) return "Flexible cadence";
+    const lower = value.toLowerCase();
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+  };
 
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
+    <div className="relative min-h-[calc(100vh-5rem)] bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 pb-24 text-white lg:pb-12">
+      <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_top,_rgba(59,130,246,0.25),transparent_45%)]" />
+      <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_bottom,_rgba(14,165,233,0.15),transparent_40%)]" />
 
-      <div className="relative mx-auto flex h-[calc(100vh-5rem)] max-w-6xl gap-6 px-6 py-10">
-        {/* Left: Group list */}
-        <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <div className="flex items-center gap-2 text-slate-100">
-              <Radio className="h-4 w-4 text-green-300" />
-              <h2 className="text-lg font-semibold">Groups</h2>
+      <div className="relative mx-auto flex h-full max-w-6xl flex-col gap-6 px-4 py-8 lg:h-[calc(100vh-6rem)] lg:flex-row lg:px-6">
+        {/* Conversation list */}
+        <div
+          className={`w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl transition lg:flex ${
+            activeGroup ? "hidden lg:flex" : "flex"
+          }`}
+        >
+          <div className="space-y-6 border-b border-white/10 px-6 py-8">
+            <div className="flex items-end justify-between gap-6">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/70">Chats</p>
+                <h1 className="text-xl font-semibold">Messages</h1>
+              </div>
+              <Button
+                size="sm"
+                className="rounded-full bg-white/90 text-slate-900 hover:bg-white"
+                onClick={() => setShowCreate(true)}
+              >
+                <PlusCircle className="mr-1 h-4 w-4" />
+                New
+              </Button>
             </div>
-            <Button
-              onClick={() => setShowCreate(true)}
-              size="sm"
-              className="rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow hover:shadow-blue-500/40"
-            >
-              <PlusCircle size={18} />
-              New
-            </Button>
+            <div className="relative">
+              <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search"
+                className="h-11 rounded-2xl pl-4 pr-12 text-sm text-white placeholder:text-slate-400"
+              />
+            </div>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
-            {loading && <div className="text-slate-400">Loading groups...</div>}
-            {error && <div className="text-rose-400">{error}</div>}
+          <div className="flex-1 overflow-y-auto">
+            {loading && (
+              <div className="p-6 text-sm text-slate-300">Loading conversations...</div>
+            )}
+            {error && <div className="p-6 text-sm text-rose-300">{error}</div>}
 
-            {!loading && !error && groups.length === 0 && (
-              <div className="mt-10 flex flex-col items-center justify-center space-y-2 text-center text-slate-400">
-                <p className="text-base font-medium text-white/80">No group chats yet.</p>
-                <p className="text-sm text-slate-400">Start by creating your first group ➕</p>
+            {!loading && !error && filteredGroups.length === 0 && (
+              <div className="flex flex-col items-center gap-3 px-6 py-12 text-center text-slate-300">
+                <Sparkles className="h-8 w-8 text-white" />
+                <p>No chats yet. Create a group to get the convo started.</p>
               </div>
             )}
 
-            {groups.map((group) => (
-              <Card
-                key={group.id}
-                onClick={() => setActiveGroupId(group.id)}
-                className={`cursor-pointer rounded-xl border border-white/10 bg-white/5 transition hover:-translate-y-[2px] hover:shadow-xl ${
-                  activeGroupId === group.id
-                    ? "border-blue-400/50 bg-gradient-to-r from-blue-500/20 via-indigo-500/10 to-blue-600/10 shadow-blue-900/30"
-                    : ""
-                }`}
-              >
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-semibold text-white">
-                    {group.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1 text-xs text-slate-300">
-                  <p className="line-clamp-2">
-                    <span className="font-medium text-slate-200">Description:</span>{" "}
-                    {group.description || "No description yet"}
-                  </p>
-                  <p>
-                    <span className="font-medium text-slate-200">Interval:</span>{" "}
-                    {group.interval ? group.interval.charAt(0).toUpperCase() + group.interval.slice(1) : "Unset"}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+            <div className="divide-y divide-white/5">
+              {filteredGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => setActiveGroupId(group.id)}
+                  className={`flex w-full items-center gap-3 px-6 py-4 text-left hover:bg-white/5 ${
+                    activeGroupId === group.id ? "bg-white/10" : ""
+                  }`}
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-base font-semibold">
+                    {group.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between text-sm font-medium">
+                      <span>{group.name}</span>
+                      <span className="text-[11px] font-normal text-slate-300">
+                        {readableInterval(group.interval)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 line-clamp-1">
+                      {group.description || "No description yet"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Right: Chat view OR summary */}
-        <div className="flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+        {/* Chat window */}
+        <div
+          className={`flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl transition ${
+            activeGroup ? "flex" : "hidden lg:flex"
+          }`}
+        >
           {activeGroup ? (
             <div className="flex h-full flex-col">
               <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-                <div className="flex items-center gap-2 text-white">
-                  <Sparkles className="h-4 w-4 text-blue-200" />
-                  <h3 className="text-lg font-semibold">{activeGroup.name}</h3>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full border border-white/20 text-white hover:bg-white/10 lg:hidden"
+                    onClick={() => setActiveGroupId(null)}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <div>
+                    <p className="text-sm font-semibold">{activeGroup.name}</p>
+                    <p className="text-xs text-slate-300">
+                      {readableInterval(activeGroup.interval)} • {activeGroup.description || "Shared recap space"}
+                    </p>
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  onClick={() => setActiveGroupId(null)}
-                >
-                  Back to groups
-                </Button>
+                <div className="hidden items-center gap-3 text-xs text-slate-200 lg:flex">
+                  <span className="inline-flex items-center gap-1">
+                    <Users2 className="h-4 w-4" />
+                    Crew synced
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <CalendarDays className="h-4 w-4" />
+                    {readableInterval(activeGroup.interval)} cadence
+                  </span>
+                </div>
               </div>
-              <div className="flex-1 overflow-y-auto">
-                <GroupChat
-                  group={activeGroup}
-                  onBack={() => setActiveGroupId(null)}
-                />
+              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-transparent to-slate-950/30">
+                <GroupChat group={activeGroup} onBack={() => setActiveGroupId(null)} />
               </div>
             </div>
           ) : (
-            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
-                  <Radio className="h-4 w-4 text-green-300" />
-                  Live rooms available
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  onClick={() => setShowCreate(true)}
-                >
-                  Start a new chat
-                </Button>
+            <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center text-slate-200">
+              <div className="rounded-full bg-white/10 p-6">
+                <Sparkles className="h-10 w-10 text-white" />
               </div>
-
-              <section>
-                <h3 className="mb-3 text-lg font-semibold text-white">⏰ Upcoming Chats</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Card className="rounded-xl border-white/10 bg-white/5">
-                    <CardContent className="p-4 text-sm text-slate-200">
-                      Example Group — Next update: Friday
-                    </CardContent>
+              <div>
+                <h3 className="text-2xl font-semibold">Select a conversation</h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  Your latest life updates will show up like an iMessage thread—choose a chat to dive in
+                  or start a new one to bring friends together.
+                </p>
+              </div>
+              <div className="w-full max-w-md space-y-3 text-left text-sm text-slate-300">
+                {sampleHighlights.map((text) => (
+                  <Card key={text} className="border-white/10 bg-white/5">
+                    <CardContent className="p-4">{text}</CardContent>
                   </Card>
-                  <Card className="rounded-xl border-white/10 bg-white/5">
-                    <CardContent className="p-4 text-sm text-slate-200">
-                      Another Group — Next update: Tomorrow
-                    </CardContent>
-                  </Card>
-                </div>
-              </section>
-
-              <section>
-                <h3 className="mb-3 text-lg font-semibold text-white">🌟 Recent Highlights</h3>
-                <div className="space-y-3">
-                  <Card className="rounded-xl border-white/10 bg-white/5">
-                    <CardContent className="p-4 text-sm text-slate-200">
-                      <strong className="text-white">Alice</strong> shared a new recipe in{" "}
-                      <em className="text-slate-300">Foodies 🍜</em>
-                    </CardContent>
-                  </Card>
-                  <Card className="rounded-xl border-white/10 bg-white/5">
-                    <CardContent className="p-4 text-sm text-slate-200">
-                      <strong className="text-white">Sam</strong> finished a half-marathon update in{" "}
-                      <em className="text-slate-300">Morning Joggers 🏃‍♀️</em>
-                    </CardContent>
-                  </Card>
-                  <Card className="rounded-xl border-white/10 bg-white/5">
-                    <CardContent className="p-4 text-sm text-slate-200">
-                      Carol: “Let’s schedule the next game night 🎮” — 1d ago
-                    </CardContent>
-                  </Card>
-                </div>
-              </section>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -249,7 +303,7 @@ export default function Chats() {
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Weekend Hikers 🥾"
+              placeholder="e.g. Weekend Hikers"
             />
           </div>
 
@@ -258,7 +312,7 @@ export default function Chats() {
             <Input
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="What’s this group about?"
+              placeholder="A short blurb for your friends"
             />
           </div>
 
@@ -269,19 +323,16 @@ export default function Chats() {
                 <SelectValue placeholder="Select interval" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Daily">Daily</SelectItem>
-                <SelectItem value="Weekly">Weekly</SelectItem>
-                <SelectItem value="Biweekly">Biweekly</SelectItem>
-                <SelectItem value="Monthly">Monthly</SelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="biweekly">Biweekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <DialogFooter>
-            <Button
-              onClick={handleCreateGroup}
-              className="bg-blue-500 text-white hover:bg-blue-600"
-            >
+            <Button onClick={handleCreateGroup} className="bg-blue-500 text-white hover:bg-blue-600">
               Create
             </Button>
           </DialogFooter>
