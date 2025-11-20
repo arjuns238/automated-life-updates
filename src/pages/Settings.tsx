@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -22,7 +22,11 @@ import {
   handleGoogleCallback,
   getGoogleStatus,
   disconnectGoogle,
+  defaultCalendarSettings,
+  getGooglePreferences,
+  updateGooglePreferences,
 } from "@/integrations/google/auth";
+import type { CalendarSettings } from "@/integrations/google/auth";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -54,6 +58,11 @@ export default function Settings() {
     const v = localStorage.getItem("google_connected");
     return v === "true";
   });
+  const [calendarSettings, setCalendarSettings] = useState<CalendarSettings>(defaultCalendarSettings);
+  const [calendarSettingsLoading, setCalendarSettingsLoading] = useState(false);
+  const [calendarSettingsSaving, setCalendarSettingsSaving] = useState(false);
+  const [calendarSettingsDirty, setCalendarSettingsDirty] = useState(false);
+  const [showCalendarPrefs, setShowCalendarPrefs] = useState(false);
 
   const stravaHandledRef = useRef(false);
   const spotifyHandledRef = useRef(false);
@@ -105,6 +114,43 @@ export default function Settings() {
       cancelled = true;
     };
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !googleConnected) {
+      setCalendarSettings(defaultCalendarSettings);
+      setCalendarSettingsDirty(false);
+      setShowCalendarPrefs(false);
+      return;
+    }
+    let cancelled = false;
+    setCalendarSettingsLoading(true);
+    (async () => {
+      try {
+        const { settings } = await getGooglePreferences(userId);
+        if (cancelled) return;
+        setCalendarSettings(settings ?? defaultCalendarSettings);
+        setCalendarSettingsDirty(false);
+      } catch (error) {
+        console.error("Failed to load calendar preferences", error);
+        if (!cancelled) {
+          toast({
+            variant: "destructive",
+            title: "Couldn’t load calendar preferences",
+            description: "We’ll use the safest defaults for now.",
+          });
+          setCalendarSettings(defaultCalendarSettings);
+        }
+      } finally {
+        if (!cancelled) {
+          setCalendarSettingsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, googleConnected, toast]);
 
   useEffect(() => {
     if (!userId) return;
@@ -483,6 +529,7 @@ export default function Settings() {
       await disconnectGoogle(userId);
       localStorage.removeItem("google_connected");
       setGoogleConnected(false);
+      setShowCalendarPrefs(false);
       toast({
         title: "Google Calendar disconnected",
         description: "You can reconnect anytime.",
@@ -496,6 +543,51 @@ export default function Settings() {
       });
     } finally {
       setGoogleDisconnecting(false);
+    }
+  };
+
+  const updateCalendarSetting = (key: keyof CalendarSettings, value: boolean) => {
+    setCalendarSettings((prev) => {
+      const next = { ...prev, [key]: value };
+      if (!next.only_personal_calendars && !next.work_calendars) {
+        if (key === "only_personal_calendars") {
+          next.work_calendars = true;
+        } else {
+          next.only_personal_calendars = true;
+        }
+      }
+      return next;
+    });
+    setCalendarSettingsDirty(true);
+  };
+
+  const handleSaveCalendarSettings = async () => {
+    if (!userId) {
+      toast({
+        variant: "destructive",
+        title: "Sign in required",
+        description: "Please sign in to update calendar preferences.",
+      });
+      return;
+    }
+    try {
+      setCalendarSettingsSaving(true);
+      const { settings } = await updateGooglePreferences(userId, calendarSettings);
+      setCalendarSettings(settings);
+      setCalendarSettingsDirty(false);
+      toast({
+        title: "Calendar preferences saved",
+        description: "We’ll only use the event types you choose.",
+      });
+    } catch (error) {
+      console.error("Failed to save calendar preferences", error);
+      toast({
+        variant: "destructive",
+        title: "Couldn’t save preferences",
+        description: "Please try again.",
+      });
+    } finally {
+      setCalendarSettingsSaving(false);
     }
   };
 
@@ -670,63 +762,176 @@ export default function Settings() {
               )}
             </div>
 
-            <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#4285F4]/80 via-[#34A853]/70 to-[#FABB05]/60 p-4 shadow-lg shadow-blue-900/30 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <img
-                  src="/google-calendar-icon.svg"
-                  alt="Google Calendar"
-                  className="h-10 w-10 rounded-lg bg-white/20 p-1.5 shadow-lg shadow-black/20"
-                />
-                <div>
-                  <p className="font-medium text-white">Google Calendar</p>
-                  <p className="text-sm text-white/80">
-                    Pull in upcoming events & plans
-                  </p>
-                </div>
-              </div>
 
-              {googleConnected ? (
+            <div className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#4285F4]/80 via-[#34A853]/70 to-[#FABB05]/60 p-4 shadow-lg shadow-blue-900/30">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-white">
-                    <CheckCircle2 className="h-5 w-5" />
-                    <span className="text-sm font-medium">
-                      {checkingGoogleStatus ? "Checking..." : "Connected"}
-                    </span>
+                  <img
+                    src="/google-calendar-icon.svg"
+                    alt="Google Calendar"
+                    className="h-10 w-10 rounded-lg bg-white/20 p-1.5 shadow-lg shadow-black/20"
+                  />
+                  <div>
+                    <p className="font-medium text-white">Google Calendar</p>
+                    <p className="text-sm text-white/80">Pull in upcoming events & plans</p>
                   </div>
+                </div>
+
+                {googleConnected ? (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-white">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="text-sm font-medium">
+                        {checkingGoogleStatus ? "Checking..." : "Connected"}
+                      </span>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleGoogleDisconnect}
+                      className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                      disabled={googleDisconnecting || checkingGoogleStatus}
+                    >
+                      {googleDisconnecting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Disconnecting...
+                        </>
+                      ) : (
+                        "Disconnect"
+                      )}
+                    </Button>
+                  </div>
+                ) : (
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={handleGoogleDisconnect}
+                    onClick={handleGoogleConnect}
                     className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
-                    disabled={googleDisconnecting || checkingGoogleStatus}
+                    disabled={!canConnectGoogle || googleConnecting}
                   >
-                    {googleDisconnecting ? (
+                    {googleConnecting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Disconnecting...
+                        Connecting...
                       </>
                     ) : (
-                      "Disconnect"
+                      "Connect"
                     )}
                   </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleGoogleConnect}
-                  className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
-                  disabled={!canConnectGoogle || googleConnecting}
-                >
-                  {googleConnecting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    "Connect"
+                )}
+              </div>
+
+              {googleConnected && (
+                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-left text-white transition hover:bg-white/10"
+                    onClick={() => setShowCalendarPrefs((prev) => !prev)}
+                    aria-expanded={showCalendarPrefs}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-white">Calendar privacy choices</p>
+                      <p className="text-xs text-slate-300">Fine-tune what we keep from your calendar before it hits summaries.</p>
+                    </div>
+                    <ChevronDown
+                      className={`h-4 w-4 text-white transition-transform ${showCalendarPrefs ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {showCalendarPrefs && (
+                    <div className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-slate-200">
+                      <div className="text-xs text-slate-300">Defaults lean toward personal highlights. Change anything you’re comfortable sharing.</div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
+                            checked={calendarSettings.only_personal_calendars}
+                            onChange={(e) => updateCalendarSetting("only_personal_calendars", e.target.checked)}
+                            disabled={calendarSettingsLoading}
+                          />
+                          <div>
+                            <p className="font-semibold text-white">Only personal calendars</p>
+                            <p className="text-xs text-slate-300">Ignore anything that sounds like work.</p>
+                          </div>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
+                            checked={calendarSettings.work_calendars}
+                            onChange={(e) => updateCalendarSetting("work_calendars", e.target.checked)}
+                            disabled={calendarSettingsLoading}
+                          />
+                          <div>
+                            <p className="font-semibold text-white">Work calendars</p>
+                            <p className="text-xs text-slate-300">Include selected work meetings if you want.</p>
+                          </div>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
+                            checked={calendarSettings.include_all_day_events}
+                            onChange={(e) => updateCalendarSetting("include_all_day_events", e.target.checked)}
+                            disabled={calendarSettingsLoading}
+                          />
+                          <div>
+                            <p className="font-semibold text-white">All-day / long events</p>
+                            <p className="text-xs text-slate-300">Trips, birthdays, holidays, weekend getaways.</p>
+                          </div>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
+                            checked={calendarSettings.include_regular_meetings}
+                            onChange={(e) => updateCalendarSetting("include_regular_meetings", e.target.checked)}
+                            disabled={calendarSettingsLoading}
+                          />
+                          <div>
+                            <p className="font-semibold text-white">Regular meetings</p>
+                            <p className="text-xs text-slate-300">Let us mention routine meetings or syncs.</p>
+                          </div>
+                        </label>
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 md:col-span-2">
+                          <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
+                            checked={calendarSettings.include_locations}
+                            onChange={(e) => updateCalendarSetting("include_locations", e.target.checked)}
+                            disabled={calendarSettingsLoading}
+                          />
+                          <div>
+                            <p className="font-semibold text-white">Include locations (city-level only)</p>
+                            <p className="text-xs text-slate-300">We’ll keep places vague like “Austin” or “trip out of town”, never exact addresses.</p>
+                          </div>
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                        <p className="text-xs text-slate-400">
+                          {calendarSettingsLoading ? "Loading your saved preferences..." : "These choices apply to every summary."}
+                        </p>
+                        <Button
+                          size="sm"
+                          className="rounded-full border border-white/20 bg-white/15 text-white hover:bg-white/25"
+                          onClick={handleSaveCalendarSettings}
+                          disabled={!calendarSettingsDirty || calendarSettingsSaving || calendarSettingsLoading}
+                        >
+                          {calendarSettingsSaving ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving…
+                            </>
+                          ) : (
+                            "Save preferences"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   )}
-                </Button>
+                </div>
               )}
             </div>
           </CardContent>

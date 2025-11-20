@@ -84,6 +84,10 @@ async def summarize_update(
                 - If an image is ambiguous, describe it briefly without guessing.
                 - Merge overlapping details; avoid repeats.
                 - Keep privacy: no precise addresses or sensitive info.
+                Calendar safety:
+                - Calendar bullets may include work and personal plans. Only mention events that sound like personal highlights (birthdays, trips, social plans, holidays).
+                - Never mention company names, emails, meeting codes, or other sensitive work details.
+                - Keep locations vague (cities or \"trip\"/\"dinner\") instead of specific addresses.
                 Goal: produce a concise post + 3–5 hashtags.
                 Style: warm, encouraging, never cringe; 0–2 emojis; 3–5 simple hashtags.
                 Voice & vibe: warm, encouraging, playful but never cringe.

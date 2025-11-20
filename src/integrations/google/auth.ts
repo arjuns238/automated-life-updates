@@ -85,6 +85,30 @@ interface FetchEventsOptions {
   timeMax?: string;
 }
 
+export interface CalendarSettings {
+  only_personal_calendars: boolean;
+  work_calendars: boolean;
+  include_all_day_events: boolean;
+  include_regular_meetings: boolean;
+  include_locations: boolean;
+}
+
+export const defaultCalendarSettings: CalendarSettings = {
+  only_personal_calendars: true,
+  work_calendars: false,
+  include_all_day_events: true,
+  include_regular_meetings: false,
+  include_locations: false,
+};
+
+export type SanitizedCalendarEvent = {
+  id: string;
+  label: string;
+  window: string;
+  location?: string | null;
+  bullet: string;
+};
+
 export const fetchGoogleEvents = async (userId: string, options: FetchEventsOptions = {}) => {
   const url = new URL(`${config.apiBase}/api/google/events`);
   url.searchParams.set("user_id", userId);
@@ -97,5 +121,33 @@ export const fetchGoogleEvents = async (userId: string, options: FetchEventsOpti
     const text = await res.text().catch(() => "");
     throw new Error(`Failed to fetch Google events: ${res.status} ${text}`);
   }
-  return res.json() as Promise<{ events: any[] }>;
+  return res.json() as Promise<{
+    events: SanitizedCalendarEvent[];
+    bullets: string[];
+    settings: CalendarSettings;
+  }>;
+};
+
+export const getGooglePreferences = async (userId: string) => {
+  const url = new URL(`${config.apiBase}/api/google/preferences`);
+  url.searchParams.set("user_id", userId);
+  const res = await fetch(url.toString(), { method: "GET" });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Failed to load calendar preferences: ${res.status} ${text}`);
+  }
+  return res.json() as Promise<{ settings: CalendarSettings }>;
+};
+
+export const updateGooglePreferences = async (userId: string, settings: CalendarSettings) => {
+  const res = await fetch(`${config.apiBase}/api/google/preferences`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, settings }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Failed to save calendar preferences: ${res.status} ${text}`);
+  }
+  return res.json() as Promise<{ settings: CalendarSettings }>;
 };
