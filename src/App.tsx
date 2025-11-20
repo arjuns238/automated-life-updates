@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import Root from "./pages/Root";
 import Timeline from "./pages/Timeline";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import MobileNav from "@/components/MobileNav";
 
 const queryClient = new QueryClient();
 
@@ -25,16 +26,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
           <Navbar />
-          <div className="pt-20">
+          <div className="pt-20 pb-24 md:pb-0">
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
               <Route
                 path="/life-updates"
                 element={
@@ -45,6 +38,14 @@ const App = () => (
               />
               <Route path="/sign-up" element={<SignUp />} />
               <Route path="/sign-in" element={<SignIn />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/summary"
                 element={
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
+          <MobileNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

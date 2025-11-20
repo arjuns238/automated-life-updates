@@ -37,16 +37,19 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 z-50 w-full backdrop-blur-xl">
       <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-blue-950/90 border-b border-white/10 shadow-lg shadow-blue-900/20" />
-      <div className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link to="/" className="inline-flex items-center gap-2 text-lg font-semibold text-white">
+      <div className="relative mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-lg font-semibold text-white"
+        >
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 shadow-lg shadow-blue-800/40">
             <Sparkles className="h-5 w-5" />
           </span>
           FriendSync
         </Link>
 
-        <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10">
-          {navLinks.map(link => (
+        <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10 md:flex">
+          {navLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -57,10 +60,10 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="hidden text-sm font-medium text-slate-200 sm:block">
+              <span className="hidden text-sm font-medium text-slate-200 lg:block">
                 {user.email}
               </span>
               <Button
