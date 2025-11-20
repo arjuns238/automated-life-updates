@@ -70,7 +70,7 @@ export default function GroupChat({ group, onBack }: GroupChatProps) {
       setError(null);
       const { data, error } = await supabase
         .from("messages")
-        .select("id, content, user_id, created_at")
+        .select("id, content, user_id, created_at, profiles(display_name, username, avatar_url)")
         .eq("group_id", group.id)
         .order("created_at", { ascending: true });
 

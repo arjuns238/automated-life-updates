@@ -631,6 +631,37 @@ export default function Settings() {
             </span>
           </div>
         </div>
+        <nav className="flex flex-col gap-2 w-full px-4">
+          <Button
+            variant="ghost"
+            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
+            onClick={() => navigate("/settings/profile")}
+          >
+            <User size={20} /> Profile
+          </Button>
+          <Button
+            variant="ghost"
+            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
+            onClick={() => navigate("/settings/integrations")}
+          >
+            <Link2 size={20} /> Integrations
+          </Button>
+          <Button
+            variant="ghost"
+            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
+            onClick={() => navigate("/settings/notifications")}
+          >
+            <Bell size={20} /> Notifications
+          </Button>
+          <Button
+            variant="ghost"
+            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
+            onClick={() => navigate("/settings/privacy")}
+          >
+            <Shield size={20} /> Privacy
+          </Button>
+        </nav>
+      </aside>
 
         <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader>
