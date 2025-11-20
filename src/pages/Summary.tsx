@@ -269,11 +269,11 @@ export default function Summary() {
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-semibold leading-none text-white">
-                    AI Companion
+                    Your AI Recap
                   </CardTitle>
                   <span className="text-xs text-slate-300">· just now</span>
                 </div>
-                <div className="text-xs text-slate-400">@goodvibes</div>
+                <div className="text-xs text-slate-400">crafted privately for you</div>
               </div>
             </div>
           </CardHeader>
