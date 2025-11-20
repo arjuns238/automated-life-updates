@@ -166,15 +166,23 @@ export default function Chats() {
     return lower.charAt(0).toUpperCase() + lower.slice(1);
   };
 
+  const pageWrapperClasses = activeGroup
+    ? "relative h-screen min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 pb-0 text-white"
+    : "relative min-h-[calc(100vh-5rem)] bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 pb-24 text-white lg:pb-12";
+
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 pb-24 text-white lg:pb-12">
+    <div className={pageWrapperClasses}>
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_top,_rgba(59,130,246,0.22),transparent_45%)]" />
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_bottom,_rgba(14,165,233,0.15),transparent_40%)]" />
 
-      <div className="relative mx-auto flex h-full max-w-6xl flex-col gap-4 px-2 py-4 lg:h-[calc(100vh-6rem)] lg:flex-row lg:px-6 lg:py-8">
+      <div
+        className={`relative mx-auto flex h-full min-h-0 max-w-full flex-col gap-4 ${
+          activeGroup ? "px-0 py-0" : "px-2 py-4"
+        } lg:h-[calc(100vh-6rem)] lg:max-w-6xl lg:flex-row lg:px-6 lg:py-8`}
+      >
         {/* Conversation list */}
         <div
-          className={`w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-2xl transition lg:flex lg:w-[360px] lg:flex-shrink-0 lg:basis-[360px] ${
+          className={`w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-2xl transition lg:w-[360px] lg:flex-shrink-0 lg:basis-[360px] ${
             activeGroup ? "hidden lg:flex" : "flex"
           }`}
         >
@@ -253,44 +261,12 @@ export default function Chats() {
 
         {/* Chat window */}
         <div
-          className={`w-full flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-2xl transition lg:min-w-0 ${
+          className={`w-full flex-1 flex-col overflow-hidden rounded-none border-0 bg-slate-950 shadow-none transition ${
             activeGroup ? "flex" : "hidden lg:flex"
-          }`}
+          } lg:rounded-2xl lg:border lg:border-white/10 lg:bg-white/5 lg:shadow-lg lg:backdrop-blur-2xl h-full min-h-0`}
         >
           {activeGroup ? (
-            <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full border border-white/20 text-white hover:bg-white/10 lg:hidden"
-                    onClick={handleBackToList}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <div>
-                    <p className="text-sm font-semibold">{activeGroup.name}</p>
-                    <p className="text-xs text-slate-300">
-                      {readableInterval(activeGroup.interval)} • {activeGroup.description || "Shared recap space"}
-                    </p>
-                  </div>
-                </div>
-                <div className="hidden items-center gap-3 text-xs text-slate-200 lg:flex">
-                  <span className="inline-flex items-center gap-1">
-                    <Users2 className="h-4 w-4" />
-                    Crew synced
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <CalendarDays className="h-4 w-4" />
-                    {readableInterval(activeGroup.interval)} cadence
-                  </span>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-transparent via-slate-900/40 to-slate-950/70">
-                <GroupChat group={activeGroup} onBack={handleBackToList} />
-              </div>
-            </div>
+            <GroupChat group={activeGroup} onBack={handleBackToList} />
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center text-white">
               <div className="rounded-full bg-white/10 p-6">
@@ -305,8 +281,11 @@ export default function Chats() {
               </div>
               <div className="w-full max-w-md space-y-3 text-left text-sm text-white">
                 {sampleHighlights.map((text) => (
-                  <Card key={text} className="border-white/10 bg-white/5">
-                    <CardContent className="p-4 text-center text-white">{text}</CardContent>
+                  <Card
+                    key={text}
+                    className="border-0 bg-transparent p-0 text-center text-white lg:border lg:border-white/10 lg:bg-white/5"
+                  >
+                    <CardContent className="p-2 text-center text-white lg:p-4">{text}</CardContent>
                   </Card>
                 ))}
               </div>

@@ -154,8 +154,8 @@ export default function GroupChat({ group, onBack }: GroupChatProps) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-slate-950/60 text-white">
-      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-950/80 text-white lg:rounded-2xl lg:bg-slate-950/60 lg:border lg:border-white/10 lg:backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/10 bg-slate-950/90 px-4 py-3 backdrop-blur lg:rounded-t-2xl flex-shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -200,29 +200,31 @@ export default function GroupChat({ group, onBack }: GroupChatProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {error && (
-        <div className="mx-3 mb-2 flex items-center gap-2 rounded-md border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-sm text-rose-50">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="truncate">{error}</span>
-        </div>
-      )}
+      <div className="sticky bottom-0 flex-shrink-0 space-y-2 bg-slate-950/95">
+        {error && (
+          <div className="mx-3 flex items-center gap-2 rounded-md border border-rose-400/40 bg-rose-500/15 px-3 py-2 text-sm text-rose-50">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="truncate">{error}</span>
+          </div>
+        )}
 
-      <div className="flex items-center gap-2 border-t border-white/10 bg-slate-950/80 px-3 py-3">
-        <Input
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Message..."
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          className="flex-1 rounded-full border-white/15 bg-white/5 text-white placeholder:text-slate-400"
-          disabled={sending}
-        />
-        <Button
-          onClick={handleSend}
-          className="rounded-full bg-blue-600 text-white hover:bg-blue-500"
-          disabled={sending}
-        >
-          <Send size={18} />
-        </Button>
+        <div className="flex items-center gap-2 border-t border-white/10 bg-slate-950/80 px-3 py-3">
+          <Input
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Message..."
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            className="flex-1 rounded-full border-white/15 bg-white/5 text-white placeholder:text-slate-400"
+            disabled={sending}
+          />
+          <Button
+            onClick={handleSend}
+            className="rounded-full bg-blue-600 text-white hover:bg-blue-500"
+            disabled={sending}
+          >
+            <Send size={18} />
+          </Button>
+        </div>
       </div>
     </div>
   );
