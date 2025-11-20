@@ -1,4 +1,6 @@
 // src/integrations/spotify/auth.ts
+import { API_BASE_URL } from "@/lib/apiBase";
+
 interface SpotifyConfig {
   clientId: string;
   redirectUri: string;   // must match Spotify app settings exactly
@@ -12,7 +14,7 @@ const config: SpotifyConfig = {
     (import.meta.env.VITE_SPOTIFY_REDIRECT_URI as string) ||
     `${window.location.origin}/settings`,
   scope: "user-read-email user-read-private user-read-recently-played user-top-read",
-  apiBase: (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000",
+  apiBase: API_BASE_URL,
 };
 
 /**

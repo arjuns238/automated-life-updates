@@ -16,6 +16,7 @@ import {
   type CalendarSettings,
   type SanitizedCalendarEvent,
 } from "@/integrations/google/auth";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 type StravaActivity = {
   id: number;
@@ -49,8 +50,6 @@ type SpotifyRecent = {
   played_at: string;
   track: SpotifyTrack;
 };
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000";
 
 export default function LifeUpdates() {
   const navigate = useNavigate();
@@ -166,7 +165,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setActivitiesLoading(true);
     setActivitiesError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/strava/activities?user_id=${encodeURIComponent(uid)}&per_page=5`);
+      const res = await fetch(`${API_BASE_URL}/api/strava/activities?user_id=${encodeURIComponent(uid)}&per_page=5`);
       if (!res.ok) {
         const text = await res.text().catch(() => "");
         throw new Error(text || `Failed with ${res.status}`);
@@ -175,9 +174,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       // backend returns { items: [], ... } in router; fallback to array
       const items: StravaActivity[] = Array.isArray(data) ? data : data.items || [];
       setStravaActivities(items);
-    } catch (e: any) {
-      console.error("Failed to fetch Strava activities", e);
-      setActivitiesError(e?.message || "Could not load Strava data");
+    } catch (err: unknown) {
+      console.error("Failed to fetch Strava activities", err);
+      const message = err instanceof Error ? err.message : "Could not load Strava data";
+      setActivitiesError(message);
     } finally {
       setActivitiesLoading(false);
     }
@@ -197,14 +197,14 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         return;
       }
 
-      const topRes = await fetch(`${API_BASE}/api/spotify/top?user_id=${encodeURIComponent(uid)}&limit=5&time_range=short_term`);
+      const topRes = await fetch(`${API_BASE_URL}/api/spotify/top?user_id=${encodeURIComponent(uid)}&limit=5&time_range=short_term`);
       if (!topRes.ok) {
         const text = await topRes.text().catch(() => "");
         throw new Error(text || `Failed to load Spotify top tracks (${topRes.status})`);
       }
       const top = await topRes.json();
 
-      const recentRes = await fetch(`${API_BASE}/api/spotify/recent?user_id=${encodeURIComponent(uid)}&limit=6`);
+      const recentRes = await fetch(`${API_BASE_URL}/api/spotify/recent?user_id=${encodeURIComponent(uid)}&limit=6`);
       if (!recentRes.ok) {
         const text = await recentRes.text().catch(() => "");
         throw new Error(text || `Failed to load recent listening (${recentRes.status})`);
@@ -215,9 +215,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       setSpotifyTopArtists(top.artists || []);
       setSpotifyRecent(recent.items || []);
       setSpotifyError(null);
-    } catch (e: any) {
-      console.error("Failed to fetch Spotify data", e);
-      setSpotifyError(e?.message || "Could not load Spotify data");
+    } catch (err: unknown) {
+      console.error("Failed to fetch Spotify data", err);
+      const message = err instanceof Error ? err.message : "Could not load Spotify data";
+      setSpotifyError(message);
     } finally {
       setSpotifyLoading(false);
     }
@@ -243,9 +244,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       setGoogleEvents(events);
       setCalendarBullets(bullets);
       setGoogleError(null);
-    } catch (e: any) {
-      console.error("Failed to fetch Google Calendar data", e);
-      setGoogleError(e?.message || "Could not load Google Calendar events");
+    } catch (err: unknown) {
+      console.error("Failed to fetch Google Calendar data", err);
+      const message = err instanceof Error ? err.message : "Could not load Google Calendar events";
+      setGoogleError(message);
       setGoogleEvents([]);
       setCalendarBullets([]);
     } finally {
@@ -372,7 +374,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         fd.append("update_id", String(data.id));
         photos.forEach((file) => fd.append("photos", file, file.name));
 
-        const response = await fetch("http://localhost:8000/summarize-update", {
+        const response = await fetch(`${API_BASE_URL}/summarize-update`, {
           method: "POST",
           body: fd, // IMPORTANT: no manual Content-Type header
           // credentials / headers as needed (CORS, auth, etc.)
@@ -382,7 +384,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         //   user_summary: userSummary.trim(),
         //   update_id: data.id,
         // });
-        //   const response = await fetch("http://localhost:8000/summarize-update", {
+        //   const response = await fetch(`${API_BASE_URL}/summarize-update`, {
         //     method: "POST",
         //     headers: { "Content-Type": "application/json" },
         //     // body: JSON.stringify({

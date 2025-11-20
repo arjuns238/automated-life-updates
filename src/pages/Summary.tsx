@@ -24,7 +24,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
         <img
           src={imgs[0]}
           alt="attachment 1"
-          className="w-full h-auto max-h-[520px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          className="w-full h-auto max-h-[380px] object-cover transition-transform duration-500 group-hover:scale-[1.02] sm:max-h-[520px]"
           loading="lazy"
           referrerPolicy="no-referrer"
         />
@@ -40,7 +40,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
             <img
               src={src}
               alt={`attachment ${i + 1}`}
-              className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-[1.02] sm:h-64"
               loading="lazy"
               referrerPolicy="no-referrer"
             />
@@ -58,7 +58,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
           <img
             src={imgs[0]}
             alt="attachment 1"
-            className="col-span-1 w-full h-[328px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            className="col-span-1 w-full h-[260px] object-cover transition-transform duration-500 group-hover:scale-[1.02] sm:h-[328px]"
             loading="lazy"
             referrerPolicy="no-referrer"
           />
@@ -69,7 +69,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
               <img
                 src={src}
                 alt={`attachment ${i + 2}`}
-                className="w-full h-[163px] object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                className="w-full h-[130px] object-cover transition-transform duration-500 group-hover:scale-[1.02] sm:h-[163px]"
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
@@ -88,7 +88,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
           <img
             src={src}
             alt={`attachment ${i + 1}`}
-            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+            className="w-full h-36 object-cover transition-transform duration-500 group-hover:scale-[1.02] sm:h-48"
             loading="lazy"
             referrerPolicy="no-referrer"
           />
@@ -219,12 +219,12 @@ export default function Summary() {
   const { clean, tags } = splitHashtags(aiSummary);
 
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50 md:min-h-[calc(100vh-5rem)]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
 
-      <div className="relative mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
+      <div className="relative mx-auto flex max-w-4xl flex-col gap-8 px-4 py-12 pb-[6.5rem] sm:px-6 sm:pb-12 md:pb-16">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <Button
@@ -241,8 +241,8 @@ export default function Summary() {
               Your Summary
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80 md:text-sm">
               <Activity className="h-4 w-4 text-green-300" />
               Freshly generated
             </span>
@@ -279,9 +279,9 @@ export default function Summary() {
           </CardHeader>
 
           <CardContent className="pt-0">
-            <div className="pl-14">
+            <div className="space-y-4 pl-1 sm:pl-14">
               {selectedTrack && (
-                <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-emerald-900/20 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-emerald-900/20 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     {selectedTrack.image ? (
                       <img
@@ -320,7 +320,7 @@ export default function Summary() {
                 </div>
               )}
               {clean ? (
-                <p className="text-[15px] leading-relaxed whitespace-pre-line text-slate-100">
+                <p className="whitespace-pre-line text-base leading-relaxed text-slate-100 sm:text-[15px]">
                   {clean}
                 </p>
               ) : (
@@ -347,39 +347,37 @@ export default function Summary() {
                 </div>
               )}
 
-              <div className="mt-4 flex items-center justify-between pr-2 text-xs text-slate-400">
-                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Comment</span>
-                </button>
-                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
-                  <Repeat2 className="h-4 w-4" />
-                  <span>Repost</span>
-                </button>
-                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
-                  <Heart className="h-4 w-4" />
-                  <span>Like</span>
-                </button>
-                <button className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white">
-                  <Share2 className="h-4 w-4" />
-                  <span>Share</span>
-                </button>
+              <div className="mt-4 flex flex-wrap items-center gap-2 pr-2 text-xs text-slate-400 sm:gap-3 sm:justify-between">
+                {[
+                  { icon: MessageCircle, label: "Comment" },
+                  { icon: Repeat2, label: "Repost" },
+                  { icon: Heart, label: "Like" },
+                  { icon: Share2, label: "Share" },
+                ].map(({ icon: Icon, label }) => (
+                  <button
+                    key={label}
+                    className="flex min-w-[48%] items-center gap-2 rounded-full px-2 py-1 transition hover:bg-white/10 hover:text-white sm:min-w-0"
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
             onClick={() => navigate("/life-updates")}
-            className="flex-1 min-w-[180px] bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40"
+            className="w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40 sm:flex-1 sm:min-w-[180px]"
           >
             Create New Update
           </Button>
           <Button
             variant="ghost"
             onClick={() => navigate("/home")}
-            className="min-w-[120px] rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+            className="w-full rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 sm:w-auto sm:min-w-[120px]"
           >
             Home
           </Button>

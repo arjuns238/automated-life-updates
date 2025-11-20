@@ -43,10 +43,10 @@ const sampleHighlights = [
 export default function Chats() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   // create dialog state
   const [showCreate, setShowCreate] = useState(false);
@@ -67,16 +67,13 @@ export default function Chats() {
       .order("created_at", { ascending: true });
 
     if (error) setError(error.message);
-    setGroups((data as Group[]) ?? []);
+    setGroups(((data as Group[]) ?? []).map((group) => ({
+      ...group,
+      // normalize ids to strings so selection matching works even if Supabase returns another type
+      id: String(group.id),
+    })));
     setLoading(false);
   }
-
-  useEffect(() => {
-    if (!loading && groups.length > 0 && !activeGroupId && !hasAutoSelected) {
-      setActiveGroupId(groups[0].id);
-      setHasAutoSelected(true);
-    }
-  }, [groups, loading, activeGroupId, hasAutoSelected]);
 
   async function handleCreateGroup() {
     if (!newName.trim()) return;
@@ -121,9 +118,13 @@ export default function Chats() {
         return;
       }
 
-      setGroups((prev) => [...prev, group as Group]);
-      setActiveGroupId(group.id);
-      setHasAutoSelected(true);
+      const normalizedGroup = {
+        ...(group as Group),
+        id: String(group.id),
+      };
+      setGroups((prev) => [...prev, normalizedGroup]);
+      setActiveGroupId(normalizedGroup.id);
+      setActiveGroup(normalizedGroup);
     }
 
     setNewName("");
@@ -139,7 +140,25 @@ export default function Chats() {
     );
   }, [groups, searchTerm]);
 
-  const activeGroup = groups.find((g) => g.id === activeGroupId) || null;
+  useEffect(() => {
+    if (!activeGroupId) {
+      setActiveGroup(null);
+      return;
+    }
+    const found = groups.find((g) => String(g.id) === String(activeGroupId)) || null;
+    setActiveGroup(found);
+  }, [activeGroupId, groups]);
+
+  const handleSelectGroup = (group: Group) => {
+    const normalizedId = String(group.id);
+    setActiveGroupId(normalizedId);
+    setActiveGroup({ ...group, id: normalizedId });
+  };
+
+  const handleBackToList = () => {
+    setActiveGroupId(null);
+    setActiveGroup(null);
+  };
 
   const readableInterval = (value?: string | null) => {
     if (!value) return "Flexible cadence";
@@ -149,38 +168,39 @@ export default function Chats() {
 
   return (
     <div className="relative min-h-[calc(100vh-5rem)] bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 pb-24 text-white lg:pb-12">
-      <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_top,_rgba(59,130,246,0.25),transparent_45%)]" />
+      <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_top,_rgba(59,130,246,0.22),transparent_45%)]" />
       <div className="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_bottom,_rgba(14,165,233,0.15),transparent_40%)]" />
 
-      <div className="relative mx-auto flex h-full max-w-6xl flex-col gap-6 px-4 py-8 lg:h-[calc(100vh-6rem)] lg:flex-row lg:px-6">
+      <div className="relative mx-auto flex h-full max-w-6xl flex-col gap-4 px-2 py-4 lg:h-[calc(100vh-6rem)] lg:flex-row lg:px-6 lg:py-8">
         {/* Conversation list */}
         <div
-          className={`w-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl transition lg:flex ${
+          className={`w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-2xl transition lg:flex lg:w-[360px] lg:flex-shrink-0 lg:basis-[360px] ${
             activeGroup ? "hidden lg:flex" : "flex"
           }`}
         >
-          <div className="space-y-6 border-b border-white/10 px-6 py-8">
-            <div className="flex items-end justify-between gap-6">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/70">Chats</p>
-                <h1 className="text-xl font-semibold">Messages</h1>
-              </div>
-              <Button
-                size="sm"
-                className="rounded-full bg-white/90 text-slate-900 hover:bg-white"
-                onClick={() => setShowCreate(true)}
-              >
-                <PlusCircle className="mr-1 h-4 w-4" />
-                New
-              </Button>
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/60">Messages</p>
+              <h1 className="text-lg font-semibold leading-tight">Chats</h1>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+              onClick={() => setShowCreate(true)}
+            >
+              <PlusCircle className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <div className="space-y-3 border-b border-white/10 px-4 py-3">
             <div className="relative">
-              <Search className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search"
-                className="h-11 rounded-2xl pl-4 pr-12 text-sm text-white placeholder:text-slate-400"
+                placeholder="Search chats"
+                className="h-11 w-full rounded-full border-white/10 bg-white/5 pl-10 pr-4 text-sm text-white placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -194,7 +214,7 @@ export default function Chats() {
             {!loading && !error && filteredGroups.length === 0 && (
               <div className="flex flex-col items-center gap-3 px-6 py-12 text-center text-slate-300">
                 <Sparkles className="h-8 w-8 text-white" />
-                <p>No chats yet. Create a group to get the convo started.</p>
+                <p>No chats yet. Start one to bring the crew together.</p>
               </div>
             )}
 
@@ -202,25 +222,29 @@ export default function Chats() {
               {filteredGroups.map((group) => (
                 <button
                   key={group.id}
-                  onClick={() => setActiveGroupId(group.id)}
-                  className={`flex w-full items-center gap-3 px-6 py-4 text-left hover:bg-white/5 ${
-                    activeGroupId === group.id ? "bg-white/10" : ""
+                  onClick={() => handleSelectGroup(group)}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${
+                    activeGroupId === group.id ? "bg-white/10" : "hover:bg-white/5"
                   }`}
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-base font-semibold">
-                    {group.name.charAt(0).toUpperCase()}
+                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-cyan-400 opacity-40" />
+                    <div className="relative flex h-full w-full items-center justify-center rounded-full bg-slate-900 text-base font-semibold text-white">
+                      {group.name.charAt(0).toUpperCase()}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between text-sm font-medium">
-                      <span>{group.name}</span>
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex items-center justify-between text-sm font-semibold">
+                      <span className="truncate">{group.name}</span>
                       <span className="text-[11px] font-normal text-slate-300">
                         {readableInterval(group.interval)}
                       </span>
                     </div>
                     <p className="text-xs text-slate-300 line-clamp-1">
-                      {group.description || "No description yet"}
+                      {group.description || "Shared recap space"}
                     </p>
                   </div>
+                  <span className="inline-flex h-2 w-2 shrink-0 rounded-full bg-emerald-400/80 shadow-[0_0_0_6px_rgba(16,185,129,0.15)]" />
                 </button>
               ))}
             </div>
@@ -229,7 +253,7 @@ export default function Chats() {
 
         {/* Chat window */}
         <div
-          className={`flex w-full flex-1 flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl transition ${
+          className={`w-full flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-2xl transition lg:min-w-0 ${
             activeGroup ? "flex" : "hidden lg:flex"
           }`}
         >
@@ -241,7 +265,7 @@ export default function Chats() {
                     variant="ghost"
                     size="icon"
                     className="rounded-full border border-white/20 text-white hover:bg-white/10 lg:hidden"
-                    onClick={() => setActiveGroupId(null)}
+                    onClick={handleBackToList}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -263,26 +287,26 @@ export default function Chats() {
                   </span>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-transparent to-slate-950/30">
-                <GroupChat group={activeGroup} onBack={() => setActiveGroupId(null)} />
+              <div className="flex-1 overflow-y-auto bg-gradient-to-b from-transparent via-slate-900/40 to-slate-950/70">
+                <GroupChat group={activeGroup} onBack={handleBackToList} />
               </div>
             </div>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center text-slate-200">
+            <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center text-white">
               <div className="rounded-full bg-white/10 p-6">
                 <Sparkles className="h-10 w-10 text-white" />
               </div>
               <div>
                 <h3 className="text-2xl font-semibold">Select a conversation</h3>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-white">
                   Your latest life updates will show up like an iMessage thread—choose a chat to dive in
                   or start a new one to bring friends together.
                 </p>
               </div>
-              <div className="w-full max-w-md space-y-3 text-left text-sm text-slate-300">
+              <div className="w-full max-w-md space-y-3 text-left text-sm text-white">
                 {sampleHighlights.map((text) => (
                   <Card key={text} className="border-white/10 bg-white/5">
-                    <CardContent className="p-4">{text}</CardContent>
+                    <CardContent className="p-4 text-center text-white">{text}</CardContent>
                   </Card>
                 ))}
               </div>

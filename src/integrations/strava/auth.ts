@@ -1,4 +1,6 @@
 // src/integrations/strava/auth.ts
+import { API_BASE_URL } from "@/lib/apiBase";
+
 interface StravaConfig {
   clientId: string;
   redirectUri: string;   // must match Strava app settings exactly
@@ -15,7 +17,7 @@ const config: StravaConfig = {
   // Strava expects a comma-separated scope list
   scope: "read,activity:read_all",
   // Backend base URL (so you can switch to proxy later)
-  apiBase: (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000",
+  apiBase: API_BASE_URL,
 };
 
 /**

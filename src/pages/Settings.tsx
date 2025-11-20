@@ -344,7 +344,6 @@ export default function Settings() {
     };
 
     void processCallbacks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, userId, navigate, toast]);
 
   const handleStravaConnect = async () => {

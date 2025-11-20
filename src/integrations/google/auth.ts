@@ -1,4 +1,6 @@
 // src/integrations/google/auth.ts
+import { API_BASE_URL } from "@/lib/apiBase";
+
 interface GoogleConfig {
   clientId: string;
   redirectUri: string;
@@ -12,7 +14,7 @@ const config: GoogleConfig = {
     (import.meta.env.VITE_GOOGLE_REDIRECT_URI as string) ||
     `${window.location.origin}/settings`,
   scope: "https://www.googleapis.com/auth/calendar.readonly",
-  apiBase: (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:8000",
+  apiBase: API_BASE_URL,
 };
 
 export const initiateGoogleAuth = (userId: string) => {

@@ -28,10 +28,6 @@ export default function SignIn() {
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Welcome back!",
-        description: "You are now signed in.",
-      });
       // navigate("/life-updates");
       navigate("/home");
     }

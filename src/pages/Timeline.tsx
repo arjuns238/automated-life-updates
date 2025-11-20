@@ -80,6 +80,10 @@ export default function Timeline() {
   const loadUpdates = async () => {
     setLoading(true);
     setError(null);
+    const columns =
+      "id, created_at, title, ai_summary, photos, user_summary, strava_context";
+    const fallbackColumns = "id, created_at, title, ai_summary, photos, user_summary";
+
     try {
       const {
         data: { user },
@@ -92,13 +96,29 @@ export default function Timeline() {
 
       const { data, error } = await supabase
         .from("life_updates")
-        .select("id, created_at, title, ai_summary, photos, user_summary")
+        .select(columns)
         .order("created_at", { ascending: false });
+
+      // If the backend doesn't yet have strava_context, retry without it so the view still works.
+      if (error && error.message?.toLowerCase().includes("strava_context")) {
+        const fallback = await supabase
+          .from("life_updates")
+          .select(fallbackColumns)
+          .order("created_at", { ascending: false });
+        if (fallback.error) throw fallback.error;
+        const hydrated = (fallback.data || []).map((row) => ({
+          ...row,
+          strava_context: null,
+        }));
+        setUpdates(hydrated as LifeUpdate[]);
+        return;
+      }
 
       if (error) throw error;
       setUpdates((data || []) as LifeUpdate[]);
-    } catch (e: any) {
-      setError(e?.message || "Could not load your updates.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Could not load your updates.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -113,7 +133,7 @@ export default function Timeline() {
       updates.map((item, idx) => {
         const photos = Array.isArray(item.photos) ? item.photos.filter(Boolean) : [];
         const summaryText = item.ai_summary || "No AI summary yet — open and generate one.";
-        const stravaText = deriveStravaContext(item.user_summary, (item as any).strava_context || null);
+        const stravaText = deriveStravaContext(item.user_summary, item.strava_context || null);
         const accent = idx % 3 === 0 ? "from-slate-900/90 via-blue-900/70 to-slate-950/80" : idx % 3 === 1 ? "from-slate-900/90 via-sky-900/70 to-slate-950/80" : "from-slate-900/90 via-indigo-900/70 to-slate-950/80";
         const backdrop = photos[0];
 

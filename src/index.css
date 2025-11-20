@@ -129,5 +129,8 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background-color: #020617;
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
   }
 }
