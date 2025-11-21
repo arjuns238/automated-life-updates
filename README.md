@@ -1,77 +1,37 @@
-# Welcome to your Lovable project
+# AI Friend Flow
 
-## Project info
+AI Friend Flow is a personal life-recapping app that turns your own notes plus connected integrations (like Strava) into a shareable update for friends. You jot down highlights, optionally attach photos, and the backend pulls in recent activity data, then crafts a short, upbeat summary. It’s built with a React/Tailwind frontend, a Python FastAPI backend, and Supabase for auth/data, so you can automate sending thoughtful, consistent updates without writing them from scratch.
 
-**URL**: https://lovable.dev/projects/aef9c645-d23a-44de-892a-30d7c1007de0
+## Stack
+- Frontend: Vite, React, TypeScript, Tailwind, shadcn-ui
+- Backend: Python, FastAPI (uvicorn), Strava + Supabase integrations
+- Misc: Supabase auth/storage/DB, Vite dev server
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/aef9c645-d23a-44de-892a-30d7c1007de0) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Getting started
+Prereqs: Node.js, npm, Python 3.10+, and Supabase env vars configured.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone and install
 git clone <YOUR_GIT_URL>
+cd ai-friend-flow
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# (Optional) create a Python venv
+python -m venv .venv
+source .venv/bin/activate
+pip install -r python-backend/requirements.txt
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Run the backend (from python-backend/)
+uvicorn main:app --reload --port 8000
 
-# Step 4: Start the backend server.
-uvicorn main:app --reload
-
-# Step 5: Start the development server with auto-reloading and an instant preview.
+# In another terminal, run the frontend (from repo root)
 npm run dev
-
 ```
 
-**Edit a file directly in GitHub**
+## Progressive Web App
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The Vite frontend now ships with [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/):
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/aef9c645-d23a-44de-892a-30d7c1007de0) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. During development run `npm run dev` as usual — the plugin's development service worker is automatically enabled so you can test install/offline flows locally.
+2. For a production-like test, run `npm run build && npm run preview` and open the preview URL in Chrome or Edge. Use the browser's "Install App" button (or the Application tab in DevTools) to install.
+3. When new builds ship, the service worker updates itself (`registerType: autoUpdate`). Users see the fresh content on the next navigation; check the console logs for refresh/offline-ready messages while developing.

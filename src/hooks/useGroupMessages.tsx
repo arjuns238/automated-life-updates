@@ -1,8 +1,17 @@
 import { useEffect, useState } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "../integrations/supabase/client";
 
+type GroupMessage = {
+  id: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  user?: { email: string | null } | null;
+};
+
 export function useGroupMessages(groupId: string) {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<GroupMessage[]>([]);
 
   useEffect(() => {
     if (!groupId) return;
@@ -12,11 +21,11 @@ export function useGroupMessages(groupId: string) {
         .select("*, user:auth.users(email)")
         .eq("group_id", groupId)
         .order("created_at", { ascending: true });
-      setMessages(data || []);
+      setMessages((data as GroupMessage[] | null) || []);
     };
     fetchMessages();
 
-    const subscription = supabase
+    const subscription: RealtimeChannel = supabase
       .channel("messages")
       .on(
         "postgres_changes",

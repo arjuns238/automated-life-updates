@@ -13,10 +13,11 @@ import Summary from "./pages/Summary";
 import Home from "./pages/Home";
 import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
-import Profile from "./pages/settings/Profile";
-import Integrations from "./pages/settings/Integrations";
-import Notifications from "./pages/settings/Notifications";
-import Privacy from "./pages/settings/Privacy";
+import Root from "./pages/Root";
+import Timeline from "./pages/Timeline";
+import ThisMonthWrap from "./pages/ThisMonthWrap";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import MobileNav from "@/components/MobileNav";
 
 const queryClient = new QueryClient();
 
@@ -27,24 +28,86 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
           <Navbar />
-          <div className="pt-20">
+          <div className="pt-20 pb-24 md:pb-0">
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/life-updates" element={<LifeUpdates />} />
+              <Route
+                path="/life-updates"
+                element={
+                  <ProtectedRoute>
+                    <LifeUpdates />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/sign-up" element={<SignUp />} />
               <Route path="/sign-in" element={<SignIn />} />
-              <Route path="/summary" element={<Summary />} />
-              <Route path="/chats" element={<Chats />} />
-              <Route path="/home" element={<Home />} /> 
-              <Route path="/settings" element={<Settings />}>
-                <Route path="profile" element={<Profile />} />
-                <Route path="integrations" element={<Integrations />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="privacy" element={<Privacy />} />
-              </Route>
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/summary"
+                element={
+                  <ProtectedRoute>
+                    <Summary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chats"
+                element={
+                  <ProtectedRoute>
+                    <Chats />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/home"
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                }
+              /> 
+              <Route
+                path="/timeline"
+                element={
+                  <ProtectedRoute>
+                    <Timeline />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/wrap"
+                element={
+                  <ProtectedRoute>
+                    <ThisMonthWrap />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/this-month"
+                element={
+                  <ProtectedRoute>
+                    <ThisMonthWrap />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
+          <MobileNav />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

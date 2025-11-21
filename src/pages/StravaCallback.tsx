@@ -15,12 +15,13 @@ export default function StravaCallback() {
       try {
         const params = new URLSearchParams(window.location.search);
         const code = params.get('code');
+        const state = params.get('state');
         
         if (!code) {
           throw new Error('No authorization code received');
         }
 
-        await handleStravaCallback(code);
+        await handleStravaCallback(code, state ?? undefined);
 
         // Only proceed if component is still mounted
         if (isMounted) {
