@@ -5,6 +5,7 @@ import {
   ScrollText,
   MessageCircle,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,7 @@ const navItems = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/timeline", label: "Timeline", icon: Clock3 },
   { to: "/summary", label: "Summary", icon: ScrollText },
+  { to: "/wrap", label: "Wrapped", icon: Sparkles },
   { to: "/chats", label: "Chats", icon: MessageCircle },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

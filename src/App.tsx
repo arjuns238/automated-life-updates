@@ -15,6 +15,7 @@ import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
 import Root from "./pages/Root";
 import Timeline from "./pages/Timeline";
+import ThisMonthWrap from "./pages/ThisMonthWrap";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import MobileNav from "@/components/MobileNav";
 
@@ -84,6 +85,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/wrap"
+                element={
+                  <ProtectedRoute>
+                    <ThisMonthWrap />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/this-month"
+                element={
+                  <ProtectedRoute>
+                    <ThisMonthWrap />
                   </ProtectedRoute>
                 }
               />

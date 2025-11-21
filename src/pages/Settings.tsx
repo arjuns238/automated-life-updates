@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown } from "lucide-react";
+import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown, User, Bell, Shield } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -631,39 +631,8 @@ export default function Settings() {
             </span>
           </div>
         </div>
-        <nav className="flex flex-col gap-2 w-full px-4">
-          <Button
-            variant="ghost"
-            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
-            onClick={() => navigate("/settings/profile")}
-          >
-            <User size={20} /> Profile
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
-            onClick={() => navigate("/settings/integrations")}
-          >
-            <Link2 size={20} /> Integrations
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
-            onClick={() => navigate("/settings/notifications")}
-          >
-            <Bell size={20} /> Notifications
-          </Button>
-          <Button
-            variant="ghost"
-            className="justify-start gap-2 rounded-xl hover:bg-blue-100 text-blue-700"
-            onClick={() => navigate("/settings/privacy")}
-          >
-            <Shield size={20} /> Privacy
-          </Button>
-        </nav>
-      </aside>
-
-        <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+        <div className="w-full">
+          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
               <Link2 className="h-5 w-5 text-blue-200" />
@@ -965,7 +934,8 @@ export default function Settings() {
               )}
             </div>
           </CardContent>
-        </Card>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ const Navbar = () => {
     { label: "Timeline", to: "/timeline" },
     { label: "Summary", to: "/summary" },
     { label: "Chats", to: "/chats" },
+    { label: "This Month", to: "/wrap" },
     { label: "Settings", to: "/settings" },
   ];
 
