@@ -10,14 +10,13 @@ import NotFound from "./pages/NotFound";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import Summary from "./pages/Summary";
-import Home from "./pages/Home";
 import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
-import Root from "./pages/Root";
 import Timeline from "./pages/Timeline";
 import ThisMonthWrap from "./pages/ThisMonthWrap";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import MobileNav from "@/components/MobileNav";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -41,14 +40,6 @@ const App = () => (
               <Route path="/sign-up" element={<SignUp />} />
               <Route path="/sign-in" element={<SignIn />} />
               <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/summary"
                 element={
                   <ProtectedRoute>
@@ -68,10 +59,11 @@ const App = () => (
                 path="/home"
                 element={
                   <ProtectedRoute>
-                    <Home />
+                    <Navigate to="/this-month" replace />
                   </ProtectedRoute>
                 }
-              /> 
+              />
+              <Route path="/" element={<Index />} />
               <Route
                 path="/timeline"
                 element={
@@ -92,7 +84,7 @@ const App = () => (
                 path="/wrap"
                 element={
                   <ProtectedRoute>
-                    <ThisMonthWrap />
+                    <Navigate to="/this-month" replace />
                   </ProtectedRoute>
                 }
               />

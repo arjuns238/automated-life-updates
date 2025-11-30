@@ -603,7 +603,7 @@ export default function Settings() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/this-month")}
               className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
             >
               <ArrowLeft className="h-4 w-4" />

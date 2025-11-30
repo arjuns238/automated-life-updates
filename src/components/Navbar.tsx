@@ -10,11 +10,10 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const navLinks = [
-    { label: "Home", to: "/home" },
+    { label: "Home", to: "/this-month" },
     { label: "Timeline", to: "/timeline" },
     { label: "Summary", to: "/summary" },
     { label: "Chats", to: "/chats" },
-    { label: "This Month", to: "/wrap" },
     { label: "Settings", to: "/settings" },
   ];
 
@@ -47,7 +46,7 @@ const Navbar = () => {
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 shadow-lg shadow-blue-800/40">
             <Sparkles className="h-5 w-5" />
           </span>
-          FriendSync
+          dAIly
         </Link>
 
         <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10 md:flex">

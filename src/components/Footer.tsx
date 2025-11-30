@@ -6,11 +6,10 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-2">
             <h3 className="text-2xl font-bold text-foreground mb-4">
-              FriendSync
+              dAIly
             </h3>
             <p className="text-muted-foreground leading-relaxed max-w-md">
-              AI-powered friendship maintenance that keeps you connected with the people 
-              who matter most, even when life gets hectic.
+              AI-powered digest that keeps all your integrations in one living summary—built for how you work every day.
             </p>
           </div>
           
@@ -38,7 +37,7 @@ const Footer = () => {
         
         <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-muted-foreground text-sm">
-            © 2024 FriendSync. All rights reserved.
+            © 2024 dAIly. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <a href="#" className="hover:text-foreground transition-smooth">Privacy Policy</a>

@@ -474,7 +474,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/this-month")}
               className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
             >
               ← Back
