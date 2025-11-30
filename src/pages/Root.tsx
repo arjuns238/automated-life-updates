@@ -28,7 +28,7 @@ export default function Root() {
       const isCallback = handleStravaCallback();
       // If not a callback and we're at root, show the index page
       if (!isCallback) {
-        navigate('/home');
+        navigate('/this-month');
       }
     }
   }, [navigate]);

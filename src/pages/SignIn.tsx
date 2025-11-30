@@ -28,8 +28,7 @@ export default function SignIn() {
         variant: "destructive",
       });
     } else {
-      // navigate("/life-updates");
-      navigate("/home");
+      navigate("/this-month");
     }
   };
 

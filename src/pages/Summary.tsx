@@ -230,7 +230,7 @@ export default function Summary() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/home")}
+              onClick={() => navigate("/this-month")}
               className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -376,7 +376,7 @@ export default function Summary() {
           </Button>
           <Button
             variant="ghost"
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/this-month")}
             className="w-full rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 sm:w-auto sm:min-w-[120px]"
           >
             Home
