@@ -4,9 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const navLinks = [
@@ -15,11 +17,28 @@ const Navbar = () => {
     { label: "Summary", to: "/summary" },
     { label: "Chats", to: "/chats" },
     { label: "Settings", to: "/settings" },
+    { label: "Profile", to: "/profile" },
   ];
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data?.session?.user ?? null);
+    supabase.auth.getSession().then(async ({ data }) => {
+      const currentUser = data?.session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        const defaultAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${currentUser.id}`;
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("avatar_url")
+          .eq("id", currentUser.id)
+          .single();
+
+        if (error) {
+          setAvatarUrl(defaultAvatar);
+        } else {
+          setAvatarUrl(profileData?.avatar_url || defaultAvatar);
+        }
+      }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
@@ -64,9 +83,20 @@ const Navbar = () => {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <span className="hidden text-sm font-medium text-slate-200 lg:block">
-                {user.email}
-              </span>
+              <div className="flex items-center gap-2">
+                <Link to="/profile">
+                  <Avatar className="h-8 w-8 cursor-pointer">
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl} alt="User Avatar" />
+                    ) : (
+                      <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                    )}
+                  </Avatar>
+                </Link>
+                <span className="hidden text-sm font-medium text-slate-200 lg:block">
+                  {user.email}
+                </span>
+              </div>
               <Button
                 variant="secondary"
                 className="border border-white/10 bg-white/10 text-white hover:bg-white/20"
