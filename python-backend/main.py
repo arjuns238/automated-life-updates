@@ -33,6 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    # Simple health/root check so hitting the base URL doesn't 404 on hosts like Render
+    return {"status": "ok"}
+
 app.include_router(strava.router, prefix="/api/strava", tags=["strava"])
 app.include_router(spotify.router, prefix="/api/spotify", tags=["spotify"])
 app.include_router(google_calendar.router, prefix="/api/google", tags=["google"])
