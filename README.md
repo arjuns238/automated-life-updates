@@ -38,5 +38,5 @@ The Vite frontend now ships with [`vite-plugin-pwa`](https://vite-pwa-org.netlif
 
 Front-end is hosted on Site is hosted on https://automated-life-updates.pages.dev/
 
-Back-end is yet to be hosted
+Back-end is hosted on render on the URL - https://automated-life-updates.onrender.com
 
