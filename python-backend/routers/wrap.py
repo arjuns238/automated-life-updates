@@ -102,6 +102,8 @@ def fetch_recent_life_updates(user_id: str, start: datetime, end: datetime) -> L
     """
     Pull the user's recent life updates for the month (best-effort).
     If Supabase credentials are missing, fall back to an empty list so the endpoint still works.
+    NOTE: Life updates already contain integration context (Spotify/Strava/etc.) in their summaries,
+    so we lean on this instead of fabricating placeholder stats.
     """
     if not supabase:
         return []
@@ -142,76 +144,19 @@ def fetch_recent_life_updates(user_id: str, start: datetime, end: datetime) -> L
         return []
 
 
-def get_mock_strava_summary(user_id: str) -> StravaSummary:
-    """
-    Placeholder Strava totals for the month.
-    Swap this for a real fetch that:
-      1) Looks up the user's Strava tokens in the integrations table.
-      2) Calls the Strava API for month-to-date stats.
-      3) Normalizes values into this StravaSummary model.
-    """
-    # A tiny deterministic variance so different users don't all see the same numbers.
-    variation = (sum(bytearray(user_id.encode("utf-8"))) % 12) / 10.0
-    return StravaSummary(
-        total_activities=8 + int(variation),
-        total_distance_km=72.5 + variation * 3,
-        moving_time_hours=6.4 + variation * 0.3,
-    )
-
-
-def get_mock_music_summary(user_id: str) -> MusicSummary:
-    """
-    Placeholder Spotify stats.
-    To plug in real data, fetch the user's top tracks/artists via the Spotify router
-    and map them into this structure.
-    """
-    sample_genres = ["dream pop", "indie electronica", "lofi beats", "nu jazz"]
-    top_track = "Midnight Waves — Nova"  # stub label; replace with real track name
-    return MusicSummary(
-        top_track=top_track,
-        top_genres=sample_genres[:3],
-        total_minutes_listened=980 + (len(user_id) % 120),
-    )
-
-
-def get_mock_calendar_highlights() -> CalendarSummary:
-    """
-    Placeholder calendar highlights.
-    Replace by reading the google_calendar router (or direct Google Calendar API)
-    for the current month and formatting into friendly labels.
-    """
-    now = datetime.now()
-    examples = [
-        CalendarHighlight(title="Sunset hike with friends", date_label=now.replace(day=5).strftime("%b %d")),
-        CalendarHighlight(title="Sprint review wrapped", date_label=now.replace(day=14).strftime("%b %d")),
-        CalendarHighlight(title="Family dinner night", date_label=now.replace(day=22).strftime("%b %d")),
-    ]
-    return CalendarSummary(highlights=examples)
-
-
 def build_prompt(
     month_label: str,
     updates: List[LifeUpdateSnippet],
-    strava: StravaSummary,
-    music: MusicSummary,
-    calendar: CalendarSummary,
 ) -> str:
     update_lines = "\n".join(
         f"- {item.title or 'Update'}: {item.snippet}" for item in updates if item.snippet
     )
-    genre_line = ", ".join(music.top_genres) if music.top_genres else "varied genres"
-    highlights = "\n".join(f"- {h.date_label}: {h.title}" for h in calendar.highlights)
 
     return f"""
 You are summarizing this user's month in 3–5 warm, authentic sentences. Be positive but not cheesy.
 End with 3 simple hashtags.
 Month: {month_label}
-Stats:
-- Strava: {strava.total_activities} activities, {strava.total_distance_km:.1f} km, {strava.moving_time_hours:.1f} hours
-- Music: top track {music.top_track or "unknown"}, genres {genre_line}, {music.total_minutes_listened} minutes listened
-Calendar:
-{highlights or "- No calendar highlights captured."}
-Recent life updates:
+Recent life updates (already contain Spotify/Strava/Calendar context):
 {update_lines or "- No updates submitted this month."}
 """
 
@@ -219,19 +164,13 @@ Recent life updates:
 def generate_ai_wrap_summary(
     month_label: str,
     updates: List[LifeUpdateSnippet],
-    strava: StravaSummary,
-    music: MusicSummary,
-    calendar: CalendarSummary,
 ) -> str:
-    prompt = build_prompt(month_label, updates, strava, music, calendar)
+    prompt = build_prompt(month_label, updates)
 
     # Return a deterministic fallback if OpenAI is not configured.
     fallback = (
-        f"This month ({month_label}) looked active with {strava.total_activities} workouts "
-        f"covering about {strava.total_distance_km:.1f} km. You leaned into {', '.join(music.top_genres) or 'a mix of sounds'} "
-        f"and your top track was {music.top_track or 'a rotating set of favorites'}. "
-        f"{(calendar.highlights[0].title if calendar.highlights else 'You kept time for the things that matter')} "
-        f"and there are plenty of moments worth sharing. #goodvibes #momentum #keepgoing"
+        f"This month ({month_label}) collected moments worth sharing. "
+        f"Based on your recent updates, here are the highlights. #goodvibes #momentum #keepgoing"
     )
 
     if not openai_client:
@@ -273,10 +212,11 @@ async def get_this_month_wrap(
     month_label = start.strftime("%B %Y")
 
     life_updates = fetch_recent_life_updates(user_id, start, end)
-    strava_summary = get_mock_strava_summary(user_id)
-    music_summary = get_mock_music_summary(user_id)
-    calendar_summary = get_mock_calendar_highlights()
-    ai_summary = generate_ai_wrap_summary(month_label, life_updates, strava_summary, music_summary, calendar_summary)
+    # Strava/Music/Calendar remain empty until real integration data is wired in; do not fabricate values.
+    strava_summary = StravaSummary()
+    music_summary = MusicSummary()
+    calendar_summary = CalendarSummary()
+    ai_summary = generate_ai_wrap_summary(month_label, life_updates)
 
     return WrapResponse(
         month_label=month_label,
