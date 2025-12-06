@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import Timeline from "./pages/Timeline";
 import Home from "./pages/Home";
 import ThisMonthWrap from "./pages/ThisMonthWrap";
+import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import MobileNav from "@/components/MobileNav";
 import { Navigate } from "react-router-dom";
@@ -40,6 +41,7 @@ const App = () => (
               />
               <Route path="/sign-up" element={<SignUp />} />
               <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route
                 path="/summary"
                 element={
