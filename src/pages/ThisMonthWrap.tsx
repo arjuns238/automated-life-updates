@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,13 @@ type WrapResponse = {
   life_updates: LifeUpdateSnippet[];
 };
 
+type LocationState = {
+  wrap?: WrapResponse;
+  generatedAt?: string | null;
+};
+
+const STORAGE_KEY = "this-month-wrap";
+
 const LoadingState = () => (
   <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-10 text-white/80 shadow-lg backdrop-blur">
     <Loader2 className="h-8 w-8 animate-spin text-indigo-200" />
@@ -64,15 +72,40 @@ const ErrorState = ({ message }: { message: string }) => (
 );
 
 export default function ThisMonthWrap() {
-  const [wrap, setWrap] = useState<WrapResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const locationState = (location.state || {}) as LocationState;
+
+  const cached = useMemo(() => {
+    if (locationState.wrap) {
+      return { wrap: locationState.wrap, generatedAt: locationState.generatedAt || null };
+    }
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { wrap?: WrapResponse; generatedAt?: string };
+      if (!parsed?.wrap) return null;
+      return { wrap: parsed.wrap, generatedAt: parsed.generatedAt || null };
+    } catch {
+      return null;
+    }
+  }, [locationState.generatedAt, locationState.wrap]);
+
+  const hadWrapInitially = Boolean(cached?.wrap);
+  const [wrap, setWrap] = useState<WrapResponse | null>(cached?.wrap ?? null);
+  const [wrapGeneratedAt, setWrapGeneratedAt] = useState<string | null>(cached?.generatedAt ?? null);
+  const [loading, setLoading] = useState(!cached?.wrap);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchWrap = async () => {
-      setLoading(true);
+      if (hadWrapInitially) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       try {
         const {
@@ -94,11 +127,17 @@ export default function ThisMonthWrap() {
         const json = (await res.json()) as WrapResponse;
         if (!isMounted) return;
         setWrap(json);
+        const generatedAt = new Date().toISOString();
+        setWrapGeneratedAt(generatedAt);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ wrap: json, generatedAt }));
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Could not fetch your wrap.";
         if (isMounted) setError(message);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     };
 
@@ -106,7 +145,7 @@ export default function ThisMonthWrap() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, []); 
 
   const stravaLabel = useMemo(() => {
     if (!wrap) return "";
@@ -171,17 +210,32 @@ export default function ThisMonthWrap() {
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-medium text-indigo-50">
                 <Wand2 className="h-4 w-4" />
-                AI crafted
+                {wrapGeneratedAt
+                  ? `AI crafted ${new Date(wrapGeneratedAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}`
+                  : "AI crafted"}
+                {refreshing && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-[11px] text-indigo-100/80">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> refreshing
+                  </span>
+                )}
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-6 p-6">
             {loading && <LoadingState />}
-            {!loading && error && <ErrorState message={error} />}
+            {!loading && !wrap && error && <ErrorState message={error} />}
 
-            {!loading && !error && wrap && (
+            {!loading && wrap && (
               <>
+                {error && (
+                  <div className="rounded-xl border border-amber-300/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-50">
+                    Showing your cached wrap. Refresh failed: {error}
+                  </div>
+                )}
                 <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-900/70 p-4 shadow-inner">
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/15 via-pink-500/15 to-cyan-500/15" />
                   <div className="relative flex items-center gap-3">

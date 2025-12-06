@@ -13,6 +13,7 @@ import Summary from "./pages/Summary";
 import Chats from "./pages/Chats";
 import Settings from "./pages/Settings";
 import Timeline from "./pages/Timeline";
+import Home from "./pages/Home";
 import ThisMonthWrap from "./pages/ThisMonthWrap";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import MobileNav from "@/components/MobileNav";
@@ -84,7 +85,7 @@ const App = () => (
                 path="/wrap"
                 element={
                   <ProtectedRoute>
-                    <Navigate to="/this-month" replace />
+                    <ThisMonthWrap />
                   </ProtectedRoute>
                 }
               />
@@ -92,7 +93,7 @@ const App = () => (
                 path="/this-month"
                 element={
                   <ProtectedRoute>
-                    <ThisMonthWrap />
+                    <Home />
                   </ProtectedRoute>
                 }
               />

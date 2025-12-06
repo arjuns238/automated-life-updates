@@ -363,12 +363,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       let summaryError = null;
 
       try {
-        const calendarContext = calendarBullets.length
-          ? `\n\nHere are sanitized calendar highlights:\n${calendarBullets
-              .map((bullet) => `- ${bullet}`)
-              .join("\n")}`
-          : "";
-        const enhancedSummary = `${userSummary.trim()}${calendarContext}\n\nFocus on:\n- Weave these events into a cohesive recap\n- Call out fitness stats (distance/time) when relevant\n- Keep it upbeat and concise (1-2 sentences unless user specifies otherwise)`;
+        const enhancedSummary = `${userSummary.trim()}\n\nFocus on:\n- Weave these events into a cohesive recap\n- Call out fitness stats (distance/time) when relevant\n- Keep it upbeat and concise (1-2 sentences unless user specifies otherwise)`;
         const fd = new FormData();
         fd.append("user_summary", enhancedSummary);
         fd.append("update_id", String(data.id));
@@ -835,7 +830,6 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                         : "Locations are hidden per your preferences."}
                     </p>
                   )}
-
                   {hasGoogleEvents ? (
                     <div className="grid gap-3 md:grid-cols-2">
                       {googleEvents.map((event) => (
