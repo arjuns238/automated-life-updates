@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Share2, Heart, MessageCircle, Repeat2 } from "lucide-react";
+import { Sparkles, ArrowLeft, Share2, Heart, MessageCircle, Repeat2, Loader2 } from "lucide-react";
 import { Activity } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Extract #hashtags (simple) and return [cleanText, hashtags[]] */
 function splitHashtags(text: string): { clean: string; tags: string[] } {
@@ -101,6 +103,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 type LocationState = {
   aiSummary?: string;
   photo_urls?: string[];
+  update_id?: string;
   selectedTrack?: {
     id: string;
     name: string;
@@ -116,10 +119,12 @@ export default function Summary() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state || {}) as LocationState;
+  const { toast } = useToast();
 
   // text
-  const aiSummary =
-    state.aiSummary ?? localStorage.getItem("aiSummary") ?? "";
+  const initialSummary = state.aiSummary ?? localStorage.getItem("aiSummary") ?? "";
+  const updateId =
+    state.update_id ?? localStorage.getItem("last_update_id") ?? "";
 
   // photos
   const photos: string[] = useMemo(() => {
@@ -188,6 +193,41 @@ export default function Summary() {
     };
   }, []);
 
+  const handleSave = async () => {
+    if (!updateId) {
+      toast({
+        title: "Cannot save",
+        description: "Missing update id to save this summary.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("life_updates")
+        .update({ ai_summary: editable })
+        .eq("id", updateId);
+      if (error) throw error;
+      setSummaryText(editable);
+      localStorage.setItem("aiSummary", editable);
+      toast({
+        title: "Summary saved",
+        description: "Your recap has been updated.",
+      });
+      setEditing(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not save summary.";
+      toast({
+        title: "Save failed",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const togglePlay = () => {
     if (!selectedTrack) return;
     if (selectedTrack.preview_url) {
@@ -216,10 +256,19 @@ export default function Summary() {
     }
   };
 
-  const { clean, tags } = splitHashtags(aiSummary);
+  const [summaryText, setSummaryText] = useState(initialSummary);
+  const [editable, setEditable] = useState(initialSummary);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { clean, tags } = splitHashtags(summaryText);
+
+  useEffect(() => {
+    setSummaryText(initialSummary);
+    setEditable(initialSummary);
+  }, [initialSummary]);
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50 md:min-h-[calc(100vh-5rem)]">
+    <div className="relative min-h-[100dvh] overflow-visible bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50 md:min-h-[calc(100vh-5rem)]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
@@ -320,9 +369,65 @@ export default function Summary() {
                 </div>
               )}
               {clean ? (
-                <p className="whitespace-pre-line text-base leading-relaxed text-slate-100 sm:text-[15px]">
-                  {clean}
-                </p>
+                <div className="space-y-3">
+                  {editing ? (
+                    <>
+                      <textarea
+                        value={editable}
+                        onChange={(e) => setEditable(e.target.value)}
+                        rows={5}
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-100 shadow-inner shadow-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+                      />
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          size="sm"
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="bg-white text-slate-900 hover:bg-slate-100"
+                        >
+                          {saving ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving…
+                            </>
+                          ) : (
+                            <>Save</>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditable(summaryText);
+                            setEditing(false);
+                          }}
+                          className="text-slate-200"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-line break-words text-base leading-relaxed text-slate-100 sm:text-[15px]"
+                        style={{ overflowWrap: "anywhere" }}>
+                        {clean}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                          onClick={() => setEditing(true)}
+                          disabled={!updateId}
+                          title={updateId ? "Edit summary" : "Cannot edit without update id"}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ) : (
                 <div className="py-10 text-center">
                   <Sparkles className="mx-auto mb-3 h-10 w-10 text-slate-500" />

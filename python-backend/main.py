@@ -107,9 +107,7 @@ async def summarize_update(
 
         ai_summary = response.output_text.strip()
         print("AI Summary:", ai_summary)
-        # Update Supabase
-        data = supabase.table("life_updates").update({"ai_summary": ai_summary, "photos":photo_urls}).eq("id", update_id).execute()
-
+        # Return to frontend for user review; frontend will persist after user confirmation.
         return {"success": True, "ai_summary": ai_summary, "photo_urls": photo_urls}
 
         # return {"success": True, "ai_summary": "Summary placeholder", "photo_urls": photo_urls}
