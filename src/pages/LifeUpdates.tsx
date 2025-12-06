@@ -60,6 +60,9 @@ export default function LifeUpdates() {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [summaryPhotoUrls, setSummaryPhotoUrls] = useState<string[]>([]);
+  const [lastUpdateId, setLastUpdateId] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [stravaActivities, setStravaActivities] = useState<StravaActivity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
@@ -328,6 +331,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       return;
     }
 
+    setAiSummary(null);
+    setSummaryPhotoUrls([]);
+    setLastUpdateId(null);
     setIsSubmitting(true);
     try {
       // Get current user
@@ -404,24 +410,20 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         });
       } else {
         setAiSummary(summaryData.ai_summary);
-        toast({
-          title: "Success!",
-          description: "Your life update has been saved and summarized",
-        });
-        if (selectedTrack) {
-          localStorage.setItem("selected_track", JSON.stringify(selectedTrack));
-        } else {
-          localStorage.removeItem("selected_track");
-        }
-        console.log("At LifeUpdates.tsx -> Navigating to summary with:", summaryData.ai_summary);
+        setSummaryPhotoUrls(summaryData.photo_urls || []);
+        setLastUpdateId(data.id);
         localStorage.setItem("aiSummary", summaryData.ai_summary);
-        localStorage.setItem("photo_urls", JSON.stringify(summaryData.photo_urls));
-        localStorage.setItem("last_update_id", String(summaryData.updateId)); // handy for the fallback fetch
+        localStorage.setItem("photo_urls", JSON.stringify(summaryData.photo_urls || []));
+        localStorage.setItem("last_update_id", String(data.id));
+        toast({
+          title: "Summary ready to edit",
+          description: "Review and save your AI summary below before publishing.",
+        });
         navigate("/summary", {
           state: {
             aiSummary: summaryData.ai_summary,
-            photo_urls: summaryData.photo_urls,
-            update_id: summaryData.updateId,
+            photo_urls: summaryData.photo_urls || [],
+            update_id: data.id,
             selectedTrack,
           },
         });
@@ -441,6 +443,46 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePublishSummary = async () => {
+    if (!lastUpdateId || !aiSummary) {
+      toast({
+        title: "Nothing to save yet",
+        description: "Generate and review an AI summary first.",
+      });
+      return;
+    }
+    setIsPublishing(true);
+    try {
+      const { error } = await supabase
+        .from("life_updates")
+        .update({ ai_summary: aiSummary, photos: summaryPhotoUrls })
+        .eq("id", lastUpdateId);
+
+      if (error) throw error;
+      toast({
+        title: "Summary saved",
+        description: "Your AI summary has been saved to this update.",
+      });
+      navigate("/summary", {
+        state: {
+          aiSummary,
+          photo_urls: summaryPhotoUrls,
+          update_id: lastUpdateId,
+          selectedTrack,
+        },
+      });
+    } catch (error) {
+      console.error("Error saving summary:", error);
+      toast({
+        title: "Could not save summary",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -967,8 +1009,39 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 AI Summary
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="leading-relaxed text-slate-100">{aiSummary}</p>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-slate-300">
+                Edit anything you like, then save to continue.
+              </p>
+              <Textarea
+                value={aiSummary}
+                onChange={(e) => setAiSummary(e.target.value)}
+                rows={5}
+                className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
+              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={handlePublishSummary}
+                  disabled={isPublishing}
+                  className="bg-white text-slate-900 hover:bg-slate-100"
+                >
+                  {isPublishing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>Save & view summary</>
+                  )}
+                </Button>
+                <span className="text-xs text-slate-300">
+                  Final summary shows as usual after save.
+                </span>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+                <p className="text-xs uppercase tracking-[0.08em] text-slate-400">Preview</p>
+                <p className="mt-2 leading-relaxed text-slate-100">{aiSummary}</p>
+              </div>
             </CardContent>
           </Card>
         )}
