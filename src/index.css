@@ -127,6 +127,10 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    background-color: #020617;
+  }
+
   body {
     @apply bg-background text-foreground;
     background-color: #020617;

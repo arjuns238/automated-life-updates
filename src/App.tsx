@@ -28,7 +28,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
           <Navbar />
-          <div className="pt-20 pb-24 md:pb-0">
+          <div className="pt-20 pb-[calc(env(safe-area-inset-bottom)+88px)] md:pb-0">
             <Routes>
               <Route
                 path="/life-updates"
