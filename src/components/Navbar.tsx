@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
@@ -8,11 +8,13 @@ import { Sparkles } from "lucide-react";
 const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isLanding = location.pathname === "/" || location.pathname === "/this-month";
 
   const navLinks = [
     { label: "Home", to: "/this-month" },
     { label: "Timeline", to: "/timeline" },
-    { label: "Summary", to: "/summary" },
+    { label: "Update", to: "/summary" },
     { label: "Chats", to: "/chats" },
     { label: "Settings", to: "/settings" },
   ];
@@ -49,17 +51,19 @@ const Navbar = () => {
           dAIly
         </Link>
 
-        <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10 md:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className="rounded-full px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
+        {!isLanding && (
+          <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10 md:flex">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="rounded-full px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           {user ? (
@@ -84,11 +88,13 @@ const Navbar = () => {
             </>
           ) : (
             <Button
-              variant="hero"
-              className="shadow-glow"
+              variant="secondary"
+              size="lg"
+              className="beam-button h-12 border border-white/25 bg-white/10 px-6 text-slate-50 shadow-glow hover:bg-white/20 rounded-xl"
+              style={{ borderRadius: "14px" }}
               onClick={() => navigate("/sign-in")}
             >
-              Sign In
+              Sign in
             </Button>
           )}
         </div>

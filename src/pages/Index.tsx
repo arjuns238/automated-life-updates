@@ -32,24 +32,24 @@ type StoryCard = {
 
 const storyCards: StoryCard[] = [
   {
-    title: "Your month, beautifully written",
-    detail: "dAIly stitches your top songs, runs, trips, and milestones into one cinematic recap.",
-    meta: "Pulling Spotify · Strava · Photos · Calendar",
-    tone: "from-cyan-500/20 via-blue-500/15 to-indigo-500/10",
+    title: "Remember the good stuff",
+    detail: "Little updates become one clear memory: workouts, songs, photos, and thoughts in a single thread.",
+    meta: "Collecting Spotify · Strava · Calendar · Photos",
+    tone: "from-amber-400/25 via-orange-400/15 to-rose-400/10",
     icon: Sparkles,
   },
   {
-    title: "Context you forgot you had",
-    detail: "Locations, friends, weather, and streaks are woven in automatically—no manual journaling.",
-    meta: "15 insights surfaced",
-    tone: "from-emerald-500/25 via-teal-500/15 to-sky-500/10",
+    title: "Two wraps, one truth",
+    detail: "A private, honest recap just for you. A public-safe highlight reel you can share without oversharing.",
+    meta: "Private + shareable, separated by design",
+    tone: "from-cyan-500/20 via-blue-500/15 to-indigo-500/10",
     icon: CalendarRange,
   },
   {
-    title: "Share or keep it close",
-    detail: "Export a private link, post a reel, or keep it as your personal monthly \"Wrapped\".",
-    meta: "Share-ready in one tap",
-    tone: "from-amber-400/25 via-orange-400/15 to-rose-400/10",
+    title: "Emotion forward, not a feed",
+    detail: "dAIly is a gentle companion. No guilt, no streaks, just a way to explain how you’ve really been.",
+    meta: "Built to calm the chaos",
+    tone: "from-emerald-500/25 via-teal-500/15 to-sky-500/10",
     icon: ShieldGlyph,
   },
 ];
@@ -58,20 +58,20 @@ const logos = ["Spotify", "Strava", "Google Calendar", "Apple Photos", "Maps", "
 
 const testimonials = [
   {
-    name: "Sasha — product design",
-    quote: "It feels like a personal Wrapped every month. The blur + slide-in recap is luxe.",
+    name: "Sasha, product design",
+    quote: "It finally lets me explain how I’ve been without dumping every detail. The private wrap feels honest.",
   },
   {
-    name: "Jordan — runner",
-    quote: "The Strava + Spotify mashup card is the trophy I didn’t know I needed.",
+    name: "Jordan, runner",
+    quote: "I drop in runs and songs, and dAIly hands back a month that actually sounds like me.",
   },
   {
-    name: "Lena — traveler",
-    quote: "Flashlight hover plus alpha-masked marquee makes the landing feel alive.",
+    name: "Lena, traveler",
+    quote: "I forget what happened by week two. The recap brings the small moments back, not just the trips.",
   },
   {
-    name: "Chris — PM",
-    quote: "I stopped digging through apps—dAIly hands me the story with context I forgot.",
+    name: "Chris, PM",
+    quote: "It’s the only recap that feels gentle and private-first. The public version stays high-level on purpose.",
   },
 ];
 
@@ -160,45 +160,44 @@ const Index = () => {
           <div className="space-y-6" data-animate>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
               <Sparkle className="h-4 w-4" />
-              dAIly · Monthly highlight reel
+              dAIly · Monthly life recap
             </div>
             <div className="space-y-4">
               <h1 className="text-4xl font-semibold leading-tight md:text-5xl">
-                <AnimatedText text="Your life, wrapped every month—songs, runs, trips, memories." />
+                <AnimatedText text="A gentle companion that remembers your month, then writes the story for you." />
               </h1>
               <p className="max-w-2xl text-lg text-slate-200/85">
-                dAIly connects to Spotify, Strava, Calendar, Photos, Maps, and more to auto-collect
-                the moments that defined your month. One tap turns it into a beautifully written,
-                shareable recap—with insights you didn’t know you had.
+                Drop in small updates. dAIly keeps track, adds context you forgot, and at month’s end
+                gives you two wraps: a personal narrative and a public highlight reel.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 size="lg"
-                className="beam-button bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40"
-                onClick={() => navigate("/sign-up")}
-              >
-                Start my wrap
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                size="lg"
                 variant="secondary"
-                className="beam-button border border-white/20 bg-white/10 text-slate-50 hover:bg-white/20"
+                className="beam-button h-12 border border-white/20 bg-white/10 px-6 text-slate-50 hover:bg-white/20"
                 onClick={() => navigate("/sign-in")}
               >
                 Sign in
               </Button>
-              <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
+              <Button
+                size="lg"
+                className="beam-button h-12 border border-white/20 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 px-7 text-white shadow-glow transition-all hover:shadow-blue-500/40"
+                onClick={() => navigate("/sign-up")}
+              >
+                Don't have an account? Sign up
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              {/* <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
                 <Activity className="h-4 w-4 text-green-300" />
                 Live: syncing 7 services
-              </span>
+              </span> */}
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { label: "Songs played", value: "Top: 90s nostalgia" },
-                { label: "Movement", value: "42 km logged" },
-                { label: "Trips & events", value: "6 memories pinned" },
+                { label: "Moments saved", value: "24 this month" },
+                { label: "Private insights", value: "Pattern: calmer weeks after long runs" },
+                { label: "Shareable cards", value: "Public wrap ready" },
               ].map((item, idx) => (
                 <div
                   key={item.label}
@@ -224,8 +223,8 @@ const Index = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-200/80">Content switching</p>
-                  <p className="text-2xl font-semibold text-white">Rotating wrap</p>
+                  <p className="text-sm text-slate-200/80">Wrap preview</p>
+                  <p className="text-2xl font-semibold text-white">Private + public safe</p>
                 </div>
                 <div className="flex items-center gap-2 rounded-full bg-blue-500/20 px-3 py-1 text-xs text-blue-50">
                   <Sparkles className="h-4 w-4" />
@@ -248,8 +247,8 @@ const Index = () => {
                     </div>
                     <p className="text-sm leading-relaxed text-slate-50/80">{active.detail}</p>
                     <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">Fade + slide in</span>
-                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">Clip reveal</span>
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">Private-first</span>
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">Share-safe ready</span>
                     </div>
                   </div>
                 </div>
@@ -299,25 +298,25 @@ const Index = () => {
           <div className="space-y-4" data-animate>
             <div className="flex items-center gap-2 text-sm text-slate-300">
               <CalendarRange className="h-4 w-4 text-blue-200" />
-              Animate when in view: fade, slide, blur, element by element.
+              Built to feel calm: no feed, no pressure, just your month in focus.
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {[
                 {
-                  title: "Auto-collect everything",
-                  body: "Spotify plays, Strava runs, calendar events, photos, travel routes—captured without lifting a finger.",
+                  title: "Small updates, big clarity",
+                  body: "Drop in quick thoughts, a photo, a workout, or a song. Integrations fill in the rest so nothing gets lost.",
                 },
                 {
-                  title: "AI-written recap",
-                  body: "A personal narrative with insights and context you missed. Use it privately or share.",
+                  title: "Private emotional wrap",
+                  body: "A month-end narrative that talks like you do: honest, contextual, and only yours.",
                 },
                 {
-                  title: "Design-forward export",
-                  body: "Clip-path reveals, flashlight hover, and border beams make every card feel premium.",
+                  title: "Public-safe highlight reel",
+                  body: "A shareable version with the vibe of your month, minus the sensitive details.",
                 },
                 {
-                  title: "Built for app + web",
-                  body: "Modern UI that feels right on phone or desktop with the same dark, tactile vibe.",
+                  title: "No guilt, no feed",
+                  body: "Not another social scroll or streak to protect, just a calm space to remember and reflect.",
                 },
               ].map((item, idx) => (
                 <div
@@ -346,13 +345,13 @@ const Index = () => {
           >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.25),transparent_35%)]" />
             <div className="relative space-y-3">
-              <p className="text-sm text-slate-200/80">Text animation</p>
+              <p className="text-sm text-slate-200/80">Story delivery</p>
               <h3 className="text-2xl font-semibold text-white">
-                <AnimatedText text="Vertical clip slide—letter by letter—for your monthly claim." />
+                <AnimatedText text="Storytelling that feels calm and intentional." />
               </h3>
               <p className="text-sm text-slate-300/80">
-                Every glyph slides down with blur and clip-path, fill-mode set to both. Perfect for
-                hero lines, recap headers, and timeline section titles.
+                The wrap reads like a note from someone who knows you well, animated softly, focused
+                on clarity, not hype.
               </p>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-slate-100">Clip-path reveal</span>
@@ -366,8 +365,8 @@ const Index = () => {
         <section className="space-y-5" data-animate>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-200/80">Testimonials looping</p>
-              <h3 className="text-2xl font-semibold text-white">Alpha-masked marquee of believers</h3>
+              <p className="text-sm text-slate-200/80">People using dAIly</p>
+              <h3 className="text-2xl font-semibold text-white">Why a monthly wrap that feels human matters</h3>
             </div>
             <Button
               variant="ghost"
@@ -400,31 +399,31 @@ const Index = () => {
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
                 <Play className="h-4 w-4" />
-                See the recap flow
+                Month-end ritual
               </div>
               <h3 className="text-3xl font-semibold text-white">
-                Ready to see your month as a story?
+                Ready to see your month with clarity?
               </h3>
               <p className="text-slate-200/80 text-lg">
-                dAIly quietly syncs your services, animates in with fade/slide/blur, and hands you a
-                premium wrap you can keep or share.
+                dAIly quietly keeps your moments, then gives you two wraps: one deeply honest for
+                you, one public-safe and aesthetic for everyone else.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button
-                  className="beam-button bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 text-white"
-                  size="lg"
-                  onClick={() => navigate("/sign-up")}
-                >
-                  Start for free
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-                <Button
                   variant="secondary"
-                  className="beam-button border border-white/25 bg-white/10 text-slate-50"
+                  className="beam-button h-12 border border-white/25 bg-white/10 px-6 text-slate-50"
                   size="lg"
                   onClick={() => navigate("/sign-in")}
                 >
-                  I already have an account
+                  Sign in
+                </Button>
+                <Button
+                  className="beam-button h-12 border border-white/25 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 px-7 text-white"
+                  size="lg"
+                  onClick={() => navigate("/sign-up")}
+                >
+                  Don't have an account? Sign up
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -438,10 +437,10 @@ const Index = () => {
                 <span className="rounded-full bg-white/10 px-2 py-1 text-xs">Auto</span>
               </div>
               <div className="mt-4 space-y-3">
-                {["Top songs", "Best run", "Favorite photos", "Events & trips"].map((item, idx) => (
+                {["Private thoughts", "Songs that stuck", "Workouts logged", "Events & photos"].map((item, idx) => (
                   <div key={item} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">
                     <span className="text-slate-100">{item}</span>
-                    <span className="text-slate-300/80">{idx % 2 === 0 ? "Added" : "Analyzing"}</span>
+                    <span className="text-slate-300/80">{idx % 2 === 0 ? "Saved privately" : "Analyzing"}</span>
                   </div>
                 ))}
               </div>
