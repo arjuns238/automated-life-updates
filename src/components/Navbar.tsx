@@ -9,7 +9,7 @@ const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const isLanding = location.pathname === "/" || location.pathname === "/this-month";
+  const isHome = location.pathname === "/" || location.pathname === "/this-month";
 
   const navLinks = [
     { label: "Home", to: "/this-month" },
@@ -51,7 +51,7 @@ const Navbar = () => {
           dAIly
         </Link>
 
-        {!isLanding && (
+        {!isHome && (
           <div className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1 shadow-inner shadow-blue-500/10 md:flex">
             {navLinks.map((link) => (
               <Link

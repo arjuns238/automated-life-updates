@@ -132,7 +132,7 @@ export default function Timeline() {
     () =>
       updates.map((item, idx) => {
         const photos = Array.isArray(item.photos) ? item.photos.filter(Boolean) : [];
-        const summaryText = item.ai_summary || "No AI summary yet — open and generate one.";
+        const summaryText = item.ai_summary || "No AI summary yet. Open and generate one.";
         const stravaText = deriveStravaContext(item.user_summary, item.strava_context || null);
         const accent = idx % 3 === 0 ? "from-slate-900/90 via-blue-900/70 to-slate-950/80" : idx % 3 === 1 ? "from-slate-900/90 via-sky-900/70 to-slate-950/80" : "from-slate-900/90 via-indigo-900/70 to-slate-950/80";
         const backdrop = photos[0];

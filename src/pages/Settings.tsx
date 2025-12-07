@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown, User, Bell, Shield } from "lucide-react";
+import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown, User, Bell, Shield, LogOut } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -451,6 +451,24 @@ export default function Settings() {
     [userId, googleClientId, googleConnected, checkingGoogleStatus],
   );
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out",
+        description: "Come back soon!",
+      });
+      navigate("/sign-in");
+    } catch (error) {
+      console.error("Failed to log out", error);
+      toast({
+        variant: "destructive",
+        title: "Log out failed",
+        description: "Please try again.",
+      });
+    }
+  };
+
   const handleStravaDisconnect = async () => {
     if (!userId) {
       toast({
@@ -629,6 +647,14 @@ export default function Settings() {
               <Sparkles className="h-4 w-4 text-blue-200" />
               Auto-sync ready
             </span>
+            <Button
+              size="sm"
+              onClick={handleLogout}
+              className="rounded-full bg-white text-black hover:bg-white/90 flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Log out
+            </Button>
           </div>
         </div>
         <div className="w-full">

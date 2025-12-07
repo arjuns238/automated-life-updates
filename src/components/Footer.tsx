@@ -9,7 +9,7 @@ const Footer = () => {
               dAIly
             </h3>
             <p className="text-muted-foreground leading-relaxed max-w-md">
-              AI-powered digest that keeps all your integrations in one living summary—built for how you work every day.
+              AI-powered digest that keeps all your integrations in one living summary, built for how you work every day.
             </p>
           </div>
           

@@ -471,13 +471,6 @@ export default function Summary() {
           >
             Create New Update
           </Button>
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/this-month")}
-            className="w-full rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/15 sm:w-auto sm:min-w-[120px]"
-          >
-            Home
-          </Button>
         </div>
       </div>
     </div>

@@ -275,7 +275,7 @@ export default function Chats() {
               <div>
                 <h3 className="text-2xl font-semibold">Select a conversation</h3>
                 <p className="mt-2 text-sm text-white">
-                  Your latest life updates will show up like an iMessage thread—choose a chat to dive in
+                  Your latest life updates will show up like an iMessage thread; choose a chat to dive in
                   or start a new one to bring friends together.
                 </p>
               </div>

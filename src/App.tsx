@@ -1,9 +1,8 @@
 import { Toaster } from "@/components/ui/toaster";
-import Navbar from "@/components/Navbar";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import LifeUpdates from "./pages/LifeUpdates";
 import NotFound from "./pages/NotFound";
@@ -23,13 +22,9 @@ import { Navigate } from "react-router-dom";
 const queryClient = new QueryClient();
 
 const AppShell = () => {
-  const location = useLocation();
-  const hideNavbar = location.pathname === "/this-month";
-
   return (
     <>
-      {!hideNavbar && <Navbar />}
-      <div className={`${hideNavbar ? "pt-0" : "pt-20"} pb-[calc(env(safe-area-inset-bottom)+88px)] md:pb-0`}>
+      <div className="pt-0 pb-[calc(env(safe-area-inset-bottom)+88px)] md:pb-0">
         <Routes>
           <Route
             path="/life-updates"

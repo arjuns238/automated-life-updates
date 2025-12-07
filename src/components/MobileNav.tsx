@@ -21,6 +21,7 @@ const navItems = [
 const MobileNav = () => {
   const location = useLocation();
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const isHome = location.pathname === "/" || location.pathname === "/this-month";
 
   useEffect(() => {
     let mounted = true;
@@ -43,7 +44,7 @@ const MobileNav = () => {
     return location.pathname.startsWith(`${path}/`);
   };
 
-  if (signedIn === false) {
+  if (signedIn === false || isHome) {
     return null;
   }
 

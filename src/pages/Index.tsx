@@ -175,17 +175,19 @@ const Index = () => {
               <Button
                 size="lg"
                 variant="secondary"
-                className="beam-button h-12 border border-white/20 bg-white/10 px-6 text-slate-50 hover:bg-white/20"
+                className="beam-button h-12 rounded-xl border border-white/25 bg-white/10 px-6 text-slate-50 hover:bg-white/20"
+                style={{ borderRadius: "14px" }}
                 onClick={() => navigate("/sign-in")}
               >
                 Sign in
               </Button>
               <Button
                 size="lg"
-                className="beam-button h-12 border border-white/20 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 px-7 text-white shadow-glow transition-all hover:shadow-blue-500/40"
+                className="beam-button h-12 rounded-xl border border-white/25 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 px-7 text-white shadow-glow transition-all hover:shadow-blue-500/40"
+                style={{ borderRadius: "14px" }}
                 onClick={() => navigate("/sign-up")}
               >
-                Don't have an account? Sign up
+                Sign up
                 <ArrowRight className="h-4 w-4" />
               </Button>
               {/* <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
@@ -411,18 +413,20 @@ const Index = () => {
               <div className="flex flex-wrap gap-3">
                 <Button
                   variant="secondary"
-                  className="beam-button h-12 border border-white/25 bg-white/10 px-6 text-slate-50"
+                  className="beam-button h-12 rounded-xl border border-white/25 bg-white/10 px-6 text-slate-50"
                   size="lg"
+                  style={{ borderRadius: "14px" }}
                   onClick={() => navigate("/sign-in")}
                 >
                   Sign in
                 </Button>
                 <Button
-                  className="beam-button h-12 border border-white/25 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 px-7 text-white"
+                  className="beam-button h-12 rounded-xl border border-white/25 bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 px-7 text-white"
                   size="lg"
+                  style={{ borderRadius: "14px" }}
                   onClick={() => navigate("/sign-up")}
                 >
-                  Don't have an account? Sign up
+                  Sign up
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
