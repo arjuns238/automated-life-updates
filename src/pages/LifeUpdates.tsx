@@ -500,7 +500,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col items-center px-4 py-10 pb-48 md:py-12 md:pb-56">
+    <div className="min-h-screen bg-[#000000] text-gray-100 flex flex-col items-center px-4 py-10 pb-48 md:py-12 md:pb-56">
       {isSubmitting && (
         <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-6 py-8 text-center shadow-2xl shadow-black/50">

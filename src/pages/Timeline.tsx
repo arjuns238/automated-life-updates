@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
-import { Activity, Calendar, Image as ImageIcon, Loader2, Trash2 } from "lucide-react";
+import { Activity, Calendar, Image as ImageIcon, Loader2, Trash2, Search } from "lucide-react";
 
 type LifeUpdate = Tables<"life_updates"> & {
   strava_context?: string | null;
@@ -82,9 +82,8 @@ export default function Timeline() {
   const loadUpdates = async () => {
     setLoading(true);
     setError(null);
-    const columns =
-      "id, created_at, title, ai_summary, photos, user_summary, strava_context";
-    const fallbackColumns = "id, created_at, title, ai_summary, photos, user_summary";
+    const columns = "id, created_at, title, ai_summary, photos, user_summary";
+    const fallbackColumns = columns;
 
     try {
       const {
@@ -157,7 +156,7 @@ export default function Timeline() {
         return (
             <Card
               key={item.id}
-              className="group relative flex flex-col overflow-visible rounded-[1.5rem] border border-white/10 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1"
+              className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-gray-700/60 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1"
             >
             {backdrop && (
               <div
@@ -232,28 +231,38 @@ export default function Timeline() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
+    <div className="min-h-screen bg-black text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
       <div className="w-full max-w-5xl space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-semibold text-white">Timeline</h1>
-            <p className="text-base text-gray-400">All your updates in one place.</p>
+        <div className="flex flex-col gap-3 px-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-semibold text-white">Timeline</h1>
+              <p className="text-base text-gray-400">All your updates in one place.</p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-full border border-white/10 bg-white text-black hover:bg-gray-200"
+              onClick={() => navigate("/life-updates")}
+            >
+              New update
+            </Button>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-full border border-white/10 bg-white text-black hover:bg-gray-200"
-            onClick={() => navigate("/life-updates")}
-          >
-            New update
-          </Button>
+          <div className="flex w-full sm:w-[360px] h-12 bg-white/5 border border-white/10 rounded-full items-center px-4 gap-2 shadow-inner">
+            <Search className="text-gray-500 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="bg-transparent w-full outline-none text-sm placeholder-gray-500 text-white"
+            />
+          </div>
         </div>
 
         <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-white">Your story, stitched together</p>
-              <p className="text-sm text-gray-400">See every recap, photos, and Strava highlights in one place.</p>
+              <p className="text-sm text-gray-400">See every recap, photos, and memory highlight in one place.</p>
             </div>
             <div className="flex gap-2">
               <Button

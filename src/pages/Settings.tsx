@@ -609,7 +609,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
+    <div className="min-h-screen bg-[#000000] text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
       <div className="w-full max-w-4xl space-y-8">
         {/* Header */}
         <div className="space-y-4 px-1">

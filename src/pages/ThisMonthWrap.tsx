@@ -71,7 +71,7 @@ const HYDRATED_PHOTOS_KEY = "wrap-hydrated-photos";
 const LoadingState = () => {
   const messages = [
     "We’re collecting this month’s best memories…",
-    "Stitching together your highlights with a little magic ✨",
+    "Stitching together your highlights with a little magic",
     "Almost there. Polishing your recap to feel just right.",
   ];
   const [msgIndex, setMsgIndex] = useState(0);
@@ -168,56 +168,57 @@ export default function ThisMonthWrap() {
   const [highlightIndex, setHighlightIndex] = useState(0);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const returnScroll = locationState.scrollY;
+  const [regenPrompt, setRegenPrompt] = useState("");
+  const [showRegenInput, setShowRegenInput] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [highlightTouchStart, setHighlightTouchStart] = useState<number | null>(null);
+
+  const fetchWrap = async (userPrompt?: string) => {
+    if (hadWrapInitially && !userPrompt) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    setError(null);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("Please sign in to see your wrap.");
+        return;
+      }
+
+      const url = new URL(`${API_BASE_URL}/api/wrap/this-month`);
+      url.searchParams.set("user_id", user.id);
+      if (userPrompt) {
+        url.searchParams.set("user_prompt", userPrompt);
+      }
+
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Failed to load wrap (${res.status})`);
+      }
+      const json = (await res.json()) as WrapResponse;
+      setWrap(json);
+      const generatedAt = new Date().toISOString();
+      setWrapGeneratedAt(generatedAt);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ wrap: json, generatedAt }));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Could not fetch your wrap.";
+      setError(message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      setRegenerating(false);
+    }
+  };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchWrap = async () => {
-      if (hadWrapInitially) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          setError("Please sign in to see your wrap.");
-          return;
-        }
-
-        const res = await fetch(
-          `${API_BASE_URL}/api/wrap/this-month?user_id=${encodeURIComponent(user.id)}`
-        );
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(text || `Failed to load wrap (${res.status})`);
-        }
-        const json = (await res.json()) as WrapResponse;
-        if (!isMounted) return;
-        setWrap(json);
-        const generatedAt = new Date().toISOString();
-        setWrapGeneratedAt(generatedAt);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ wrap: json, generatedAt }));
-      } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : "Could not fetch your wrap.";
-        if (isMounted) setError(message);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      }
-    };
-
     fetchWrap();
-    return () => {
-      isMounted = false;
-    };
-  }, []); 
+  }, []);
 
   const stravaLabel = useMemo(() => {
     if (!wrap) return "";
@@ -304,6 +305,22 @@ export default function ThisMonthWrap() {
     } finally {
       setOpeningId(null);
     }
+  };
+
+  const handleHighlightTouchStart = (clientX: number) => {
+    setHighlightTouchStart(clientX);
+  };
+
+  const handleHighlightTouchEnd = (clientX: number, total: number) => {
+    if (highlightTouchStart === null || total <= 1) return;
+    const deltaX = clientX - highlightTouchStart;
+    const threshold = 40;
+    if (deltaX > threshold) {
+      setHighlightIndex(prev => (prev - 1 + total) % total);
+    } else if (deltaX < -threshold) {
+      setHighlightIndex(prev => (prev + 1) % total);
+    }
+    setHighlightTouchStart(null);
   };
 
   const deriveCategoryScores = (data: WrapResponse | null) => {
@@ -486,7 +503,7 @@ export default function ThisMonthWrap() {
     "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?auto=format&fit=crop&w=900&q=80";
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-4 md:px-10 py-10">
+    <div className="min-h-screen bg-black text-white flex flex-col items-center px-4 md:px-10 py-10">
       <div className="w-full max-w-[440px] md:max-w-[1200px] bg-[#0c0e14] md:bg-[#0c0e14] rounded-[2rem] md:rounded-[1.5rem] overflow-hidden shadow-2xl md:shadow-lg relative border border-white/10 ring-1 ring-white/10 flex flex-col md:min-h-screen">
         <div className="relative h-[360px] md:h-[420px] w-full shrink-0 overflow-hidden">
           {backdrop.mode === "gradient" ? (
@@ -578,6 +595,13 @@ export default function ThisMonthWrap() {
                 <div
                   className="relative w-full h-[300px] flex justify-center items-center"
                   style={{ perspective: "1000px" }}
+                  onTouchStart={e => handleHighlightTouchStart(e.touches[0].clientX)}
+                  onTouchEnd={e =>
+                    handleHighlightTouchEnd(
+                      e.changedTouches[0].clientX,
+                      effectiveWrap.life_updates?.length || 0
+                    )
+                  }
                 >
                   {effectiveWrap.life_updates && effectiveWrap.life_updates.length > 1 && (
                     <>
@@ -673,20 +697,60 @@ export default function ThisMonthWrap() {
                   Share this
                 </Button>
               </div>
-
-              <div className="pt-1">
-                <p className="text-lg font-semibold text-white mb-2">Didn&apos;t like this? Regenerate your wrap</p>
-                <Button
-                  variant="ghost"
-                  className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
-                  onClick={() => window.location.reload()}
-                >
-                  Regenerate
-                </Button>
-              </div>
             </div>
           )}
         </div>
+      </div>
+      <div className="w-full max-w-[440px] md:max-w-[1200px] mt-10 mb-36 px-1 flex flex-col items-center gap-3">
+        <p className="text-lg font-semibold text-white text-center">
+          Didn&apos;t like this? Regenerate your wrap
+        </p>
+        {!showRegenInput ? (
+          <Button
+            variant="ghost"
+            className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => setShowRegenInput(true)}
+          >
+            Regenerate
+          </Button>
+        ) : (
+          <div className="w-full max-w-xl space-y-3">
+            <p className="text-sm text-gray-300 text-center">
+              Tell us how you would like this wrap to be written
+            </p>
+            <textarea
+              value={regenPrompt}
+              onChange={e => setRegenPrompt(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-black/30 text-white placeholder-gray-500 p-3 focus:outline-none focus:ring-2 focus:ring-white/20"
+              rows={3}
+              placeholder="e.g., Focus on workouts and keep the tone upbeat but concise."
+            />
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="secondary"
+                className="bg-white text-slate-900 shadow-md hover:bg-slate-100"
+                disabled={regenerating}
+                onClick={() => {
+                  setRegenerating(true);
+                  fetchWrap(regenPrompt.trim() || undefined);
+                }}
+              >
+                {regenerating ? "Regenerating..." : "Submit & regenerate"}
+              </Button>
+              <Button
+                variant="ghost"
+                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
+                onClick={() => {
+                  setShowRegenInput(false);
+                  setRegenPrompt("");
+                }}
+                disabled={regenerating}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

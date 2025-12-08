@@ -1,6 +1,7 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
   ChevronRight,
@@ -55,12 +56,13 @@ const tripCards: TripCard[] = [
 ];
 
 const categories = ["Asia", "Europe", "South America", "Africa"];
-const defaultName = "Vanessa";
+const defaultName = "";
 
 export default function Home() {
   const navigate = useNavigate();
   const [userName, setUserName] = useState(defaultName);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [stats, setStats] = useState({
     updates: 0,
@@ -68,6 +70,8 @@ export default function Home() {
     minutes: 0,
     events: 0,
   });
+  const revealRefs = useRef<(HTMLElement | null)[]>([]);
+  const [revealed, setRevealed] = useState<boolean[]>([]);
 
   const totalCards = tripCards.length;
 
@@ -99,10 +103,57 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isDesktop = window.innerWidth >= 1024;
+    if (!isDesktop) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const idx = revealRefs.current.findIndex(el => el === entry.target);
+            if (idx >= 0) {
+              setRevealed(prev => {
+                const next = [...prev];
+                next[idx] = true;
+                return next;
+              });
+              observer.unobserve(entry.target);
+            }
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+
+    revealRefs.current.forEach(el => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   const rotateCards = (direction: "next" | "prev") => {
     setCurrentIndex(prev =>
       direction === "next" ? (prev + 1) % totalCards : (prev - 1 + totalCards) % totalCards
     );
+  };
+
+  const handleTouchStart = (clientX: number) => {
+    setTouchStartX(clientX);
+  };
+
+  const handleTouchEnd = (clientX: number) => {
+    if (touchStartX === null) return;
+    const deltaX = clientX - touchStartX;
+    const threshold = 40;
+    if (deltaX > threshold) {
+      rotateCards("prev");
+    } else if (deltaX < -threshold) {
+      rotateCards("next");
+    }
+    setTouchStartX(null);
   };
 
   const getCardStyles = (index: number): CSSProperties => {
@@ -201,15 +252,20 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col items-center px-4 py-10 gap-6">
-      <div className="w-full max-w-6xl flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:gap-12 pb-36">
-        <div className="w-full max-w-xl space-y-8">
+    <div className="min-h-screen bg-[#000000] text-gray-100 flex flex-col items-center px-4 py-10 gap-6">
+      <div className="w-full max-w-6xl flex flex-col items-center gap-8 pb-36">
+        <div
+          ref={el => (revealRefs.current[0] = el)}
+          className={`w-full max-w-4xl space-y-8 lg:transition lg:duration-700 lg:ease-out lg:opacity-0 lg:translate-y-6 ${
+            revealed[0] ? "lg:opacity-100 lg:translate-y-0" : ""
+          }`}
+        >
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-white leading-tight">
                 Hello, {userName}
               </h1>
-              <p className="text-lg text-gray-400 mt-1 font-medium">Welcome to TripGlide</p>
+              <p className="text-lg text-gray-400 mt-1 font-medium">Welcome to dAIly</p>
             </div>
             <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10 shadow-sm">
               <img
@@ -218,23 +274,6 @@ export default function Home() {
                 className="w-full h-full object-cover opacity-90 transition-opacity hover:opacity-100"
               />
             </div>
-          </div>
-
-          <div className="flex gap-3">
-            <div className="flex-1 h-14 bg-white/5 border border-white/10 rounded-full flex items-center px-5 gap-3 shadow-inner">
-              <Search className="text-gray-500 w-6 h-6" />
-              <input
-                type="text"
-                placeholder="Search"
-                className="bg-transparent w-full outline-none text-lg placeholder-gray-500 text-white font-medium"
-              />
-            </div>
-            <button
-              className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-black shadow-lg shadow-white/5 hover:scale-[1.02] transition"
-              onClick={() => navigate("/settings")}
-            >
-              <SlidersHorizontal className="w-6 h-6" />
-            </button>
           </div>
 
           <div>
@@ -260,6 +299,8 @@ export default function Home() {
           <div
             className="relative w-full h-[460px] flex justify-center items-center"
             style={{ perspective: "1000px" }}
+            onTouchStart={e => handleTouchStart(e.touches[0].clientX)}
+            onTouchEnd={e => handleTouchEnd(e.changedTouches[0].clientX)}
           >
             <button
               onClick={() => rotateCards("prev")}
@@ -314,7 +355,39 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="w-full max-w-xl space-y-6 mt-2 lg:mt-4">
+        <div
+          ref={el => (revealRefs.current[1] = el)}
+          className={`w-full max-w-4xl lg:transition lg:duration-700 lg:ease-out lg:opacity-0 lg:translate-y-6 ${
+            revealed[1] ? "lg:opacity-100 lg:translate-y-0" : ""
+          }`}
+        >
+          <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-5 py-4 text-white shadow-lg shadow-black/30 flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-gray-300">Monthly recap</p>
+                <p className="text-xl font-semibold">View your wrap</p>
+              </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-full border border-white/10 bg-white text-black hover:bg-gray-200"
+              onClick={() => navigate("/wrap")}
+            >
+              Open
+            </Button>
+            </div>
+            <p className="text-sm text-gray-400">
+              See your latest highlights, AI summary, and hero backdrop in one place.
+            </p>
+          </div>
+        </div>
+
+        <div
+          ref={el => (revealRefs.current[2] = el)}
+          className={`w-full max-w-4xl space-y-6 mt-2 lg:transition lg:duration-700 lg:ease-out lg:opacity-0 lg:translate-y-6 ${
+            revealed[2] ? "lg:opacity-100 lg:translate-y-0" : ""
+          }`}
+        >
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-white">Your month so far</h3>
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -326,10 +399,12 @@ export default function Home() {
               ].map(item => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-white"
+                  className="rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-white flex flex-col items-center"
                 >
-                  <p className="text-xs uppercase tracking-[0.12em] text-gray-400">{item.label}</p>
-                  <p className="text-2xl font-semibold mt-1">
+                  <p className="text-[11px] uppercase tracking-[0.08em] text-gray-400 text-center">
+                    {item.label}
+                  </p>
+                  <p className="text-2xl font-semibold mt-2">
                     {loadingStats ? <Loader2 className="h-5 w-5 animate-spin text-gray-300" /> : item.value}
                   </p>
                 </div>
@@ -337,7 +412,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div
+            ref={el => (revealRefs.current[3] = el)}
+            className={`space-y-4 lg:transition lg:duration-700 lg:ease-out lg:opacity-0 lg:translate-y-6 ${
+              revealed[3] ? "lg:opacity-100 lg:translate-y-0" : ""
+            }`}
+          >
             <div className="flex items-center gap-2 text-white">
               <Activity className="h-4 w-4 text-cyan-300" />
               <h3 className="text-lg font-semibold">Your integrations</h3>

@@ -111,6 +111,7 @@ type LocationState = {
     preview_url?: string;
     url?: string;
   } | null;
+  fromWrap?: boolean;
 };
 
 export default function Summary() {
@@ -123,6 +124,7 @@ export default function Summary() {
   const initialSummary = state.aiSummary ?? localStorage.getItem("aiSummary") ?? "";
   const updateId =
     state.update_id ?? localStorage.getItem("last_update_id") ?? "";
+  const fromWrapScroll = state.fromScroll ?? 0;
 
   // photos
   const photos: string[] = useMemo(() => {
@@ -151,6 +153,7 @@ export default function Summary() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
+  const fromWrap = state.fromWrap === true;
 
   const attachAudio = (url: string) => {
     const audio = new Audio(url);
@@ -291,6 +294,18 @@ export default function Summary() {
 
   return (
     <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
+      {fromWrap && (
+        <div className="w-full max-w-5xl flex justify-start mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => navigate("/wrap", { state: { scrollY: fromWrapScroll } })}
+          >
+            Back to wrap
+          </Button>
+        </div>
+      )}
       <div className="w-full max-w-5xl space-y-8">
         <div className="space-y-1 px-1">
           <h1 className="text-3xl font-semibold tracking-tight text-white">Your AI recap</h1>
