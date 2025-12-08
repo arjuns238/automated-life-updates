@@ -72,7 +72,7 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 215 28% 8%;
+    --background: 0 0% 0%;
     --foreground: 210 40% 95%;
 
     --card: 215 25% 10%;
@@ -128,12 +128,12 @@ All colors MUST be HSL.
   }
 
   html {
-    background-color: #020617;
+    background-color: #000000;
   }
 
   body {
-    @apply bg-background text-foreground;
-    background-color: #020617;
+    @apply text-foreground;
+    background-color: #000000;
     overscroll-behavior-y: contain;
     overscroll-behavior-x: none;
   }
