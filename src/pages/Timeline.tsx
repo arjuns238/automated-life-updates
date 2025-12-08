@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
-import { Activity, Calendar, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Activity, Calendar, Image as ImageIcon, Loader2, Trash2, Search } from "lucide-react";
 
 type LifeUpdate = Tables<"life_updates"> & {
   strava_context?: string | null;
@@ -76,13 +76,14 @@ export default function Timeline() {
   const [updates, setUpdates] = useState<LifeUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const loadUpdates = async () => {
     setLoading(true);
     setError(null);
-    const columns =
-      "id, created_at, title, ai_summary, photos, user_summary, strava_context";
-    const fallbackColumns = "id, created_at, title, ai_summary, photos, user_summary";
+    const columns = "id, created_at, title, ai_summary, photos, user_summary";
+    const fallbackColumns = columns;
 
     try {
       const {
@@ -128,47 +129,53 @@ export default function Timeline() {
     loadUpdates();
   }, []);
 
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("life_updates").delete().eq("id", id);
+      if (error) throw error;
+      setUpdates(prev => prev.filter(u => u.id !== id));
+      setConfirmId(null);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Could not delete update.";
+      setError(message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const rendered = useMemo(
     () =>
       updates.map((item, idx) => {
         const photos = Array.isArray(item.photos) ? item.photos.filter(Boolean) : [];
-        const summaryText = item.ai_summary || "No AI summary yet — open and generate one.";
+        const summaryText = item.ai_summary || "No AI summary yet. Open and generate one.";
         const stravaText = deriveStravaContext(item.user_summary, item.strava_context || null);
         const accent = idx % 3 === 0 ? "from-slate-900/90 via-blue-900/70 to-slate-950/80" : idx % 3 === 1 ? "from-slate-900/90 via-sky-900/70 to-slate-950/80" : "from-slate-900/90 via-indigo-900/70 to-slate-950/80";
         const backdrop = photos[0];
 
         return (
-          <Card
-            key={item.id}
-            className={`group relative overflow-hidden border border-white/10 bg-gradient-to-br ${accent} shadow-2xl backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-blue-900/30`}
-            style={{ borderRadius: "18px" }}
-          >
+            <Card
+              key={item.id}
+              className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-gray-700/60 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1"
+            >
             {backdrop && (
               <div
-                className="absolute inset-0 bg-cover bg-center opacity-35 blur-[1px] transition duration-300 group-hover:opacity-45"
+                className="absolute inset-0 bg-cover bg-center opacity-35 blur-[1px] transition duration-300 group-hover:opacity-45 pointer-events-none"
                 style={{ backgroundImage: `url(${backdrop})` }}
               />
             )}
-            <div className="absolute inset-0 bg-black/25 opacity-70 transition duration-300 group-hover:opacity-80" />
-            <CardHeader className="relative flex flex-col gap-1 pb-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="absolute inset-0 bg-black/30 opacity-70 transition duration-300 group-hover:opacity-80 pointer-events-none" />
+            <CardHeader className="relative z-10 flex flex-col gap-1 pb-2 sm:flex-row sm:items-start">
               <div className="space-y-1">
                 <CardTitle className="text-lg font-semibold text-white">{item.title}</CardTitle>
-                <div className="flex items-center gap-2 text-xs text-slate-200/90">
-                  <Calendar className="h-4 w-4 text-blue-200" />
+                <div className="flex items-center gap-2 text-xs text-gray-300">
+                  <Calendar className="h-4 w-4 text-cyan-300" />
                   <span>{monthLabel(item.created_at)}</span>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2 rounded-full border border-white/30 bg-white/10 text-xs text-white backdrop-blur hover:bg-white/20 sm:mt-0"
-                onClick={() => navigate("/summary", { state: { aiSummary: item.ai_summary, photo_urls: photos } })}
-              >
-                View summary
-              </Button>
             </CardHeader>
-            <CardContent className="relative pt-0">
-              <p className="text-sm leading-relaxed text-slate-50 whitespace-pre-line">
+            <CardContent className="relative z-10 flex-1 pt-0 flex flex-col">
+              <p className="text-sm leading-relaxed text-gray-100 whitespace-pre-line">
                 {summaryText}
               </p>
 
@@ -190,57 +197,78 @@ export default function Timeline() {
                   )}
                 </div>
               )}
+              <div className="mt-auto pt-6 flex w-full items-center justify-between gap-3 flex-wrap">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full border border-white/10 bg-white/10 text-xs text-white backdrop-blur hover:bg-white/15"
+                  onClick={() => navigate("/summary", { state: { aiSummary: item.ai_summary, photo_urls: photos } })}
+                >
+                  View summary
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full border border-rose-300/30 bg-rose-500/20 text-xs text-rose-50 hover:bg-rose-500/30"
+                  disabled={deletingId === item.id}
+                  onClick={() => setConfirmId(item.id)}
+                >
+                  {deletingId === item.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         );
       }),
-    [updates, navigate]
+    [updates, navigate, deletingId, confirmId]
   );
 
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
-
-      <div className="relative mx-auto flex max-w-5xl flex-col gap-6 px-6 py-12">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/life-updates")}
-              className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
-            >
-              ← Back
-            </Button>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
-              <Activity className="h-4 w-4 text-green-300" />
-              My Timeline
+    <div className="min-h-screen bg-black text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
+      <div className="w-full max-w-5xl space-y-8">
+        <div className="flex flex-col gap-3 px-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1">
+              <h1 className="text-3xl font-semibold text-white">Timeline</h1>
+              <p className="text-base text-gray-400">All your updates in one place.</p>
             </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-full border border-white/10 bg-white text-black hover:bg-gray-200"
+              onClick={() => navigate("/life-updates")}
+            >
+              New update
+            </Button>
           </div>
-          <Button
-            variant="hero"
-            size="sm"
-            className="shadow-glow"
-            onClick={() => navigate("/life-updates")}
-          >
-            New update
-          </Button>
+          <div className="flex w-full sm:w-[360px] h-12 bg-white/5 border border-white/10 rounded-full items-center px-4 gap-2 shadow-inner">
+            <Search className="text-gray-500 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="bg-transparent w-full outline-none text-sm placeholder-gray-500 text-white"
+            />
+          </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 px-5 py-4 text-slate-100 shadow-inner shadow-blue-900/30">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-cyan-400/10 blur-3xl" />
-          <div className="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-white">Your story, stitched together</p>
-              <p className="text-xs text-slate-200/80">See every recap, photos, and Strava highlights in one place.</p>
+              <p className="text-sm text-gray-400">See every recap, photos, and memory highlight in one place.</p>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
                 onClick={loadUpdates}
               >
                 Refresh
@@ -248,7 +276,7 @@ export default function Timeline() {
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-full border border-white/10 bg-white/15 text-white hover:bg-white/25"
+                className="rounded-full border border-white/10 bg-white text-black hover:bg-gray-200"
                 onClick={() => navigate("/life-updates")}
               >
                 Add update
@@ -258,8 +286,8 @@ export default function Timeline() {
         </div>
 
         {loading ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200">
-            <Loader2 className="h-4 w-4 animate-spin text-blue-200" />
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-gray-200">
+            <Loader2 className="h-4 w-4 animate-spin text-white" />
             Loading your timeline...
           </div>
         ) : error ? (
@@ -275,15 +303,11 @@ export default function Timeline() {
             </Button>
           </div>
         ) : updates.length === 0 ? (
-          <Card className="border border-white/10 bg-white/5 backdrop-blur-xl">
-            <CardContent className="py-10 text-center text-slate-300">
+          <Card className="rounded-[2rem] border border-white/10 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
+            <CardContent className="py-10 text-center text-gray-300">
               <p className="mb-3 text-lg font-semibold text-white">No updates yet</p>
               <p className="text-sm">Create your first life update to start your timeline.</p>
-              <Button
-                className="mt-4"
-                variant="hero"
-                onClick={() => navigate("/life-updates")}
-              >
+              <Button className="mt-4 rounded-full border border-white/10 bg-white text-black hover:bg-gray-200" onClick={() => navigate("/life-updates")}>
                 Create an update
               </Button>
             </CardContent>
@@ -292,6 +316,34 @@ export default function Timeline() {
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{rendered}</div>
         )}
       </div>
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f0f13] p-5 text-white shadow-2xl">
+            <p className="text-base font-semibold mb-3">Are you sure you want to delete?</p>
+            <p className="text-sm text-gray-300 mb-4">This will remove the update from your timeline.</p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full border border-white/10 bg-white/10 text-xs text-white hover:bg-white/15"
+                onClick={() => setConfirmId(null)}
+                disabled={deletingId === confirmId}
+              >
+                No
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="rounded-full border border-rose-300/30 bg-rose-500/20 text-xs text-rose-50 hover:bg-rose-500/30"
+                disabled={deletingId === confirmId}
+                onClick={() => handleDelete(confirmId)}
+              >
+                {deletingId === confirmId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Yes, delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

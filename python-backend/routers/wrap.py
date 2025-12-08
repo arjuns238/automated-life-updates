@@ -77,6 +77,7 @@ class LifeUpdateSnippet(BaseModel):
     title: Optional[str] = None
     created_at: Optional[str] = None
     snippet: Optional[str] = None
+    photo_urls: List[str] = Field(default_factory=list)
 
 
 class WrapResponse(BaseModel):
@@ -86,6 +87,8 @@ class WrapResponse(BaseModel):
     music: MusicSummary
     calendar: CalendarSummary
     life_updates: List[LifeUpdateSnippet] = Field(default_factory=list)
+    photo_urls: List[str] = Field(default_factory=list)
+    hero_photo_url: Optional[str] = None
 
 
 # ---------- Helpers ----------
@@ -111,7 +114,7 @@ def fetch_recent_life_updates(user_id: str, start: datetime, end: datetime) -> L
     try:
         res = (
             supabase.table("life_updates")
-            .select("id, title, ai_summary, user_summary, created_at")
+            .select("id, title, ai_summary, user_summary, created_at, photos")
             .eq("user_id", user_id)
             .gte("created_at", start.isoformat())
             .lte("created_at", end.isoformat())
@@ -128,12 +131,14 @@ def fetch_recent_life_updates(user_id: str, start: datetime, end: datetime) -> L
         for item in items:
             text = item.get("ai_summary") or item.get("user_summary") or ""
             snippet = (text[:220] + ("…" if len(text) > 220 else "")) if text else None
+            photo_list = item.get("photos") or []
             snippets.append(
                 LifeUpdateSnippet(
                     id=str(item.get("id")),
                     title=item.get("title"),
                     created_at=item.get("created_at"),
                     snippet=snippet,
+                    photo_urls=photo_list,
                 )
             )
         return snippets
@@ -147,10 +152,13 @@ def fetch_recent_life_updates(user_id: str, start: datetime, end: datetime) -> L
 def build_prompt(
     month_label: str,
     updates: List[LifeUpdateSnippet],
+    user_prompt: Optional[str] = None,
 ) -> str:
     update_lines = "\n".join(
         f"- {item.title or 'Update'}: {item.snippet}" for item in updates if item.snippet
     )
+
+    user_hint = f"\nUser direction: {user_prompt.strip()}" if user_prompt else ""
 
     return f"""
 You are summarizing this user's month in 3–5 warm, authentic sentences. Be positive but not cheesy.
@@ -158,14 +166,16 @@ End with 3 simple hashtags.
 Month: {month_label}
 Recent life updates (already contain Spotify/Strava/Calendar context):
 {update_lines or "- No updates submitted this month."}
+{user_hint}
 """
 
 
 def generate_ai_wrap_summary(
     month_label: str,
     updates: List[LifeUpdateSnippet],
+    user_prompt: Optional[str] = None,
 ) -> str:
-    prompt = build_prompt(month_label, updates)
+    prompt = build_prompt(month_label, updates, user_prompt)
 
     # Return a deterministic fallback if OpenAI is not configured.
     fallback = (
@@ -198,6 +208,7 @@ def generate_ai_wrap_summary(
 @router.get("/this-month", response_model=WrapResponse)
 async def get_this_month_wrap(
     user_id: str = Query(..., description="Supabase auth user id (from supabase.auth.getUser)"),
+    user_prompt: Optional[str] = Query(None, description="Optional user instructions for wrap tone/content"),
 ):
     """
     Combined payload used by the This Month Wrapped page.
@@ -216,7 +227,9 @@ async def get_this_month_wrap(
     strava_summary = StravaSummary()
     music_summary = MusicSummary()
     calendar_summary = CalendarSummary()
-    ai_summary = generate_ai_wrap_summary(month_label, life_updates)
+    ai_summary = generate_ai_wrap_summary(month_label, life_updates, user_prompt)
+    all_photos: List[str] = [url for update in life_updates for url in (update.photo_urls or []) if url]
+    hero_photo = all_photos[0] if all_photos else None
 
     return WrapResponse(
         month_label=month_label,
@@ -225,4 +238,6 @@ async def get_this_month_wrap(
         music=music_summary,
         calendar=calendar_summary,
         life_updates=life_updates,
+        photo_urls=all_photos,
+        hero_photo_url=hero_photo,
     )

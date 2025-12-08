@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, Share2, Heart, MessageCircle, Repeat2, Loader2 } from "lucide-react";
-import { Activity } from "lucide-react";
+import { Sparkles, Share2, Heart, MessageCircle, Repeat2, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,7 +20,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 
   if (imgs.length === 1) {
     return (
-      <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/10 group">
+      <div className="mt-4 overflow-hidden rounded-2xl group">
         <img
           src={imgs[0]}
           alt="attachment 1"
@@ -36,7 +34,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 
   if (imgs.length === 2) {
     return (
-      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl">
         {imgs.map((src, i) => (
           <div key={i} className="relative group">
             <img
@@ -55,7 +53,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
   if (imgs.length === 3) {
     // 1 big on left, 2 stacked on right
     return (
-      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl">
         <div className="relative group">
           <img
             src={imgs[0]}
@@ -84,7 +82,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 
   // 4 images
   return (
-    <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+    <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl">
       {imgs.map((src, i) => (
         <div key={i} className="relative group">
           <img
@@ -113,6 +111,7 @@ type LocationState = {
     preview_url?: string;
     url?: string;
   } | null;
+  fromWrap?: boolean;
 };
 
 export default function Summary() {
@@ -125,6 +124,7 @@ export default function Summary() {
   const initialSummary = state.aiSummary ?? localStorage.getItem("aiSummary") ?? "";
   const updateId =
     state.update_id ?? localStorage.getItem("last_update_id") ?? "";
+  const fromWrapScroll = state.fromScroll ?? 0;
 
   // photos
   const photos: string[] = useMemo(() => {
@@ -153,6 +153,7 @@ export default function Summary() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playError, setPlayError] = useState<string | null>(null);
+  const fromWrap = state.fromWrap === true;
 
   const attachAudio = (url: string) => {
     const audio = new Audio(url);
@@ -256,118 +257,122 @@ export default function Summary() {
     }
   };
 
+  const [fetchedPhotos, setFetchedPhotos] = useState<string[]>([]);
   const [summaryText, setSummaryText] = useState(initialSummary);
   const [editable, setEditable] = useState(initialSummary);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const { clean, tags } = splitHashtags(summaryText);
+  const finalPhotos = fetchedPhotos.length ? fetchedPhotos : photos;
+  const heroImage = finalPhotos[0];
+  const galleryPhotos = finalPhotos.slice(1);
 
   useEffect(() => {
     setSummaryText(initialSummary);
     setEditable(initialSummary);
   }, [initialSummary]);
 
-  return (
-    <div className="relative min-h-[100dvh] overflow-visible bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50 md:min-h-[calc(100vh-5rem)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
+  useEffect(() => {
+    const loadFromDb = async () => {
+      if ((summaryText && summaryText.trim()) || !updateId) return;
+      const { data, error } = await supabase
+        .from("life_updates")
+        .select("ai_summary, photos")
+        .eq("id", updateId)
+        .single();
+      if (error || !data) return;
+      if (data.ai_summary) {
+        setSummaryText(data.ai_summary);
+        setEditable(data.ai_summary);
+      }
+      if (Array.isArray(data.photos) && data.photos.length) {
+        setFetchedPhotos(data.photos.filter(Boolean));
+      }
+    };
+    void loadFromDb();
+  }, [summaryText, updateId]);
 
-      <div className="relative mx-auto flex max-w-4xl flex-col gap-8 px-4 py-12 pb-[6.5rem] sm:px-6 sm:pb-12 md:pb-16">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/this-month")}
-              className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
-              <Sparkles className="h-4 w-4" />
-              Your Summary
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80 md:text-sm">
-              <Activity className="h-4 w-4 text-green-300" />
-              Freshly generated
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-            >
-              <Share2 className="h-4 w-4" />
-              Share
-            </Button>
-          </div>
+  return (
+    <div className="min-h-screen bg-[#0b0b0f] text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
+      {fromWrap && (
+        <div className="w-full max-w-5xl flex justify-start mb-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
+            onClick={() => navigate("/wrap", { state: { scrollY: fromWrapScroll } })}
+          >
+            Back to wrap
+          </Button>
+        </div>
+      )}
+      <div className="w-full max-w-5xl space-y-8">
+        <div className="space-y-1 px-1">
+          <h1 className="text-3xl font-semibold tracking-tight text-white">Your AI recap</h1>
+          <p className="text-base text-gray-400">Polished to match your TripGlide style.</p>
         </div>
 
-        <Card className="border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-          <CardHeader className="pb-3">
+        <div
+          className="relative overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl shadow-black/50"
+          style={
+            heroImage
+              ? { backgroundImage: `url(${heroImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : undefined
+          }
+        >
+          {heroImage && <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/75 to-black/70" />}
+          <div className="relative px-5 py-6 sm:px-8 sm:py-8 space-y-4">
             <div className="flex items-start gap-3">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-indigo-500 to-cyan-400 opacity-30 blur-md" />
-                <div className="relative flex h-full w-full items-center justify-center rounded-full bg-gradient-hero text-primary-foreground">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 via-indigo-400 to-purple-500 opacity-40 blur-md" />
+                <div className="relative flex h-full w-full items-center justify-center rounded-full bg-black/60 text-white">
                   <Sparkles className="h-5 w-5" />
                 </div>
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm font-semibold leading-none text-white">
-                    Your AI Recap
-                  </CardTitle>
-                  <span className="text-xs text-slate-300">· just now</span>
+                  <p className="text-base font-semibold leading-none text-white">This month’s summary</p>
+                  <span className="text-xs text-gray-300">· just now</span>
                 </div>
-                <div className="text-xs text-slate-400">crafted privately for you</div>
+                <div className="text-sm text-gray-300/90">crafted privately for you</div>
               </div>
             </div>
-          </CardHeader>
 
-          <CardContent className="pt-0">
-            <div className="space-y-4 pl-1 sm:pl-14">
+            <div className="space-y-4 pl-1 sm:pl-12">
               {selectedTrack && (
-                <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 shadow-inner shadow-emerald-900/20 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-inner shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
                     {selectedTrack.image ? (
                       <img
                         src={selectedTrack.image}
                         alt={selectedTrack.name}
-                        className="h-12 w-12 rounded-xl object-cover shadow-lg shadow-emerald-900/30"
+                        className="h-12 w-12 rounded-xl object-cover shadow-lg shadow-black/40"
                       />
                     ) : (
-                      <div className="h-12 w-12 rounded-xl bg-emerald-900/40" />
+                      <div className="h-12 w-12 rounded-xl bg-white/10" />
                     )}
                     <div>
-                      <p className="text-sm font-semibold text-white">Featured Track</p>
-                      <p className="text-sm text-white">{selectedTrack.name}</p>
-                      <p className="text-xs text-emerald-50/80">{selectedTrack.artists}</p>
-                      {selectedTrack.album && (
-                        <p className="text-[11px] text-emerald-50/70">{selectedTrack.album}</p>
-                      )}
+                      <p className="text-sm font-semibold text-white">Featured track</p>
+                      <p className="text-base text-white">{selectedTrack.name}</p>
+                      <p className="text-sm text-gray-300">{selectedTrack.artists}</p>
+                      {selectedTrack.album && <p className="text-xs text-gray-400">{selectedTrack.album}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                      className="rounded-full border border-white/15 bg-white/10 text-white hover:bg-white/20"
                       disabled={!selectedTrack.preview_url && !selectedTrack.url}
                       onClick={togglePlay}
                     >
-                      {isPlaying ? "Pause Preview" : selectedTrack.preview_url ? "Play Preview" : "Open Spotify"}
+                      {isPlaying ? "Pause preview" : selectedTrack.preview_url ? "Play preview" : "Open Spotify"}
                     </Button>
                   </div>
-                  {playError && (
-                    <p className="text-xs text-amber-100/90">
-                      {playError}
-                    </p>
-                  )}
+                  {playError && <p className="text-xs text-amber-100/90">{playError}</p>}
                 </div>
               )}
+
               {clean ? (
                 <div className="space-y-3">
                   {editing ? (
@@ -376,14 +381,14 @@ export default function Summary() {
                         value={editable}
                         onChange={(e) => setEditable(e.target.value)}
                         rows={5}
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-100 shadow-inner shadow-blue-900/20 focus:outline-none focus:ring-2 focus:ring-blue-500/60"
+                        className="w-full rounded-2xl border border-white/10 bg-black/40 p-3 text-base text-gray-100 shadow-inner shadow-black/40 focus:outline-none focus:ring-2 focus:ring-white/20"
                       />
                       <div className="flex flex-wrap items-center gap-3">
                         <Button
                           size="sm"
                           onClick={handleSave}
                           disabled={saving}
-                          className="bg-white text-slate-900 hover:bg-slate-100"
+                          className="bg-white text-black hover:bg-white/90 rounded-full"
                         >
                           {saving ? (
                             <>
@@ -401,7 +406,7 @@ export default function Summary() {
                             setEditable(summaryText);
                             setEditing(false);
                           }}
-                          className="text-slate-200"
+                          className="text-gray-200 hover:bg-white/10 rounded-full"
                         >
                           Cancel
                         </Button>
@@ -409,15 +414,17 @@ export default function Summary() {
                     </>
                   ) : (
                     <>
-                      <p className="whitespace-pre-line break-words text-base leading-relaxed text-slate-100 sm:text-[15px]"
-                        style={{ overflowWrap: "anywhere" }}>
+                      <p
+                        className="whitespace-pre-line break-words text-base leading-relaxed text-gray-100 sm:text-[15px]"
+                        style={{ overflowWrap: "anywhere" }}
+                      >
                         {clean}
                       </p>
                       <div className="flex flex-wrap gap-3">
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="rounded-full border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                          className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/15"
                           onClick={() => setEditing(true)}
                           disabled={!updateId}
                           title={updateId ? "Edit summary" : "Cannot edit without update id"}
@@ -430,19 +437,17 @@ export default function Summary() {
                 </div>
               ) : (
                 <div className="py-10 text-center">
-                  <Sparkles className="mx-auto mb-3 h-10 w-10 text-slate-500" />
-                  <p className="text-slate-400">No summary yet — create a life update!</p>
+                  <Sparkles className="mx-auto mb-3 h-10 w-10 text-gray-500" />
+                  <p className="text-gray-400">No summary yet. Create a life update!</p>
                 </div>
               )}
-
-              {photos.length > 0 && <MediaGrid photos={photos} />}
 
               {tags.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {tags.slice(0, 6).map((t, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-100"
+                      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white"
                       title={t}
                     >
                       <span className="opacity-70">#</span>
@@ -452,7 +457,7 @@ export default function Summary() {
                 </div>
               )}
 
-              <div className="mt-4 flex flex-wrap items-center gap-2 pr-2 text-xs text-slate-400 sm:gap-3 sm:justify-between">
+              <div className="mt-4 flex flex-wrap items-center gap-2 pr-2 text-xs text-gray-400 sm:gap-3 sm:justify-between">
                 {[
                   { icon: MessageCircle, label: "Comment" },
                   { icon: Repeat2, label: "Repost" },
@@ -468,23 +473,22 @@ export default function Summary() {
                   </button>
                 ))}
               </div>
+
+              {galleryPhotos.length > 0 && (
+                <div className="mt-4 rounded-[1.25rem] bg-black/30 p-3 backdrop-blur-sm">
+                  <MediaGrid photos={galleryPhotos} />
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
             onClick={() => navigate("/life-updates")}
-            className="w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40 sm:flex-1 sm:min-w-[180px]"
+            className="w-full rounded-full bg-white text-black shadow-lg shadow-white/10 transition hover:scale-[1.01] sm:flex-1 sm:min-w-[180px]"
           >
             Create New Update
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/this-month")}
-            className="w-full rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 sm:w-auto sm:min-w-[120px]"
-          >
-            Home
           </Button>
         </div>
       </div>

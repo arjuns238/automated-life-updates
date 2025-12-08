@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown, User, Bell, Shield } from "lucide-react";
+import { ArrowLeft, Link2, CheckCircle2, Loader2, Sparkles, ShieldCheck, ChevronDown, User, Bell, Shield, LogOut } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -451,6 +451,24 @@ export default function Settings() {
     [userId, googleClientId, googleConnected, checkingGoogleStatus],
   );
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out",
+        description: "Come back soon!",
+      });
+      navigate("/sign-in");
+    } catch (error) {
+      console.error("Failed to log out", error);
+      toast({
+        variant: "destructive",
+        title: "Log out failed",
+        description: "Please try again.",
+      });
+    }
+  };
+
   const handleStravaDisconnect = async () => {
     if (!userId) {
       toast({
@@ -591,66 +609,58 @@ export default function Settings() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
-
-      <div className="relative mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12">
+    <div className="min-h-screen bg-[#000000] text-gray-100 flex flex-col items-center px-4 py-10 md:py-14">
+      <div className="w-full max-w-4xl space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/this-month")}
-              className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
-              <Sparkles className="h-4 w-4" />
-              Settings
-            </div>
-          </div>
+        <div className="space-y-4 px-1">
           <div className="space-y-2">
-            <h1 className="text-4xl font-semibold leading-tight text-white">Control center</h1>
-            <p className="max-w-2xl text-slate-300">
+            <h1 className="text-3xl font-semibold leading-tight text-white">Control center</h1>
+            <p className="max-w-2xl text-base text-gray-400">
               Manage your account, integrations, and activity sync so your AI friend stays in the loop.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
+            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
               <ShieldCheck className="h-4 w-4 text-emerald-300" />
               Secure by design
             </span>
-            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
-              <Sparkles className="h-4 w-4 text-blue-200" />
+            <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-gray-300">
+              <Sparkles className="h-4 w-4 text-cyan-300" />
               Auto-sync ready
             </span>
+            <Button
+              size="sm"
+              onClick={handleLogout}
+              className="rounded-full bg-white text-black hover:bg-gray-200 flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Log out
+            </Button>
           </div>
         </div>
         <div className="w-full">
-          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+          <Card className="rounded-[2rem] border border-white/10 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-white">
-              <Link2 className="h-5 w-5 text-blue-200" />
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-white">
+              <Link2 className="h-5 w-5 text-cyan-300" />
               Integrations
             </CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-gradient-to-r from-orange-500/80 via-orange-500/70 to-amber-400/60 p-4 shadow-lg shadow-orange-900/30 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 rounded-[1.5rem] border border-white/10 bg-[#16161c] p-4 shadow-inner shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <img
-                  src="/strava-icon.svg"
-                  alt="Strava"
-                  className="h-7 w-7"
-                />
+                <div className="h-10 w-10 rounded-full bg-[#fc4c02] p-2 flex items-center justify-center">
+                  <img
+                    src="/strava-icon.svg"
+                    alt="Strava"
+                    className="h-6 w-6"
+                    style={{ filter: "brightness(0) invert(1)" }}
+                  />
+                </div>
                 <div>
-                  <p className="font-medium text-white">Strava</p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-base font-semibold text-white">Strava</p>
+                  <p className="text-sm text-gray-300">
                     Sync your runs, rides & workouts
                   </p>
                 </div>
@@ -660,7 +670,7 @@ export default function Settings() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 text-white">
                     <CheckCircle2 className="h-5 w-5" />
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-semibold">
                       {checkingStravaStatus ? "Checking..." : "Connected"}
                     </span>
                   </div>
@@ -668,7 +678,7 @@ export default function Settings() {
                     variant="secondary"
                     size="sm"
                     onClick={handleStravaDisconnect}
-                    className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                    className="rounded-full border border-white/15 bg-white/10 px-4 text-white hover:bg-white/20"
                     disabled={stravaDisconnecting || checkingStravaStatus}
                   >
                     {stravaDisconnecting ? (
@@ -686,7 +696,7 @@ export default function Settings() {
                   variant="secondary"
                   size="sm"
                   onClick={handleStravaConnect}
-                  className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                  className="rounded-full border border-white/15 bg-white/10 px-4 text-white hover:bg-white/20"
                   disabled={!canConnectStrava || stravaConnecting}
                 >
                   {stravaConnecting ? (
@@ -701,16 +711,16 @@ export default function Settings() {
               )}
             </div>
 
-            <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#1DB954]/85 via-[#1ed760]/60 to-[#0f3d2e]/75 p-4 shadow-lg shadow-emerald-900/30 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative flex flex-col gap-4 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#16161c] p-4 shadow-inner shadow-black/30 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <img
                   src="/spotify-icon.svg"
                   alt="Spotify"
-                  className="h-10 w-10 rounded-full bg-black/10 p-1.5 shadow-lg shadow-black/20"
+                  className="h-10 w-10 rounded-full bg-black/20 p-1.5 shadow-lg shadow-black/20"
                 />
                 <div>
-                  <p className="font-medium text-white">Spotify</p>
-                  <p className="text-sm text-white/80">
+                  <p className="text-base font-semibold text-white">Spotify</p>
+                  <p className="text-sm text-gray-300">
                     Bring in your recent listening
                   </p>
                 </div>
@@ -718,22 +728,22 @@ export default function Settings() {
 
               {spotifyConnected ? (
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-white">
-                    <CheckCircle2 className="h-5 w-5" />
-                    <span className="text-sm font-medium">
-                      {checkingSpotifyStatus ? "Checking..." : "Connected"}
-                    </span>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleSpotifyDisconnect}
-                    className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
-                    disabled={spotifyDisconnecting || checkingSpotifyStatus}
-                  >
-                    {spotifyDisconnecting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <div className="flex items-center gap-2 text-white">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="text-sm font-semibold">
+                        {checkingSpotifyStatus ? "Checking..." : "Connected"}
+                      </span>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSpotifyDisconnect}
+                      className="rounded-full border border-white/15 bg-white/10 px-4 text-white hover:bg-white/20"
+                      disabled={spotifyDisconnecting || checkingSpotifyStatus}
+                    >
+                      {spotifyDisconnecting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Disconnecting...
                       </>
                     ) : (
@@ -746,7 +756,7 @@ export default function Settings() {
                   variant="secondary"
                   size="sm"
                   onClick={handleSpotifyConnect}
-                  className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                  className="rounded-full border border-white/15 bg-white/10 px-4 text-white hover:bg-white/20"
                   disabled={!canConnectSpotify || spotifyConnecting}
                 >
                   {spotifyConnecting ? (
@@ -762,17 +772,17 @@ export default function Settings() {
             </div>
 
 
-            <div className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-[#4285F4]/80 via-[#34A853]/70 to-[#FABB05]/60 p-4 shadow-lg shadow-blue-900/30">
+            <div className="relative flex flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#16161c] p-4 shadow-inner shadow-black/30">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <img
                     src="/google-calendar-icon.svg"
                     alt="Google Calendar"
-                    className="h-10 w-10 rounded-lg bg-white/20 p-1.5 shadow-lg shadow-black/20"
+                    className="h-10 w-10 rounded-lg bg-white/10 p-1.5 shadow-lg shadow-black/20"
                   />
                   <div>
-                    <p className="font-medium text-white">Google Calendar</p>
-                    <p className="text-sm text-white/80">Pull in upcoming events & plans</p>
+                    <p className="text-base font-semibold text-white">Google Calendar</p>
+                    <p className="text-sm text-gray-300">Pull in upcoming events & plans</p>
                   </div>
                 </div>
 
@@ -780,7 +790,7 @@ export default function Settings() {
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 text-white">
                       <CheckCircle2 className="h-5 w-5" />
-                      <span className="text-sm font-medium">
+                      <span className="text-sm font-semibold">
                         {checkingGoogleStatus ? "Checking..." : "Connected"}
                       </span>
                     </div>
@@ -788,7 +798,7 @@ export default function Settings() {
                       variant="secondary"
                       size="sm"
                       onClick={handleGoogleDisconnect}
-                      className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
+                      className="rounded-full border border-white/15 bg-white/10 px-4 text-white hover:bg-white/20"
                       disabled={googleDisconnecting || checkingGoogleStatus}
                     >
                       {googleDisconnecting ? (
@@ -802,14 +812,14 @@ export default function Settings() {
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleGoogleConnect}
-                    className="rounded-full border border-white/20 bg-white/20 px-4 text-white hover:bg-white/30"
-                    disabled={!canConnectGoogle || googleConnecting}
-                  >
-                    {googleConnecting ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleGoogleConnect}
+                  className="rounded-full border border-white/15 bg-white/10 px-4 text-white hover:bg-white/20"
+                  disabled={!canConnectGoogle || googleConnecting}
+                >
+                  {googleConnecting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Connecting...
@@ -822,16 +832,16 @@ export default function Settings() {
               </div>
 
               {googleConnected && (
-                <div className="space-y-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-slate-200">
+                <div className="space-y-2 rounded-2xl border border-white/10 bg-[#1c1c22] p-3 text-sm text-gray-200">
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-left text-white transition hover:bg-white/10"
+                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-[#0f0f13] px-4 py-2 text-left text-white transition hover:bg-white/10"
                     onClick={() => setShowCalendarPrefs((prev) => !prev)}
                     aria-expanded={showCalendarPrefs}
                   >
                     <div>
                       <p className="text-sm font-semibold text-white">Calendar privacy choices</p>
-                      <p className="text-xs text-slate-300">Fine-tune what we keep from your calendar before it hits summaries.</p>
+                      <p className="text-xs text-gray-300">Fine-tune what we keep from your calendar before it hits summaries.</p>
                     </div>
                     <ChevronDown
                       className={`h-4 w-4 text-white transition-transform ${showCalendarPrefs ? "rotate-180" : ""}`}
@@ -839,10 +849,10 @@ export default function Settings() {
                   </button>
 
                   {showCalendarPrefs && (
-                    <div className="space-y-4 rounded-2xl border border-white/15 bg-white/5 p-4 text-sm text-slate-200">
-                      <div className="text-xs text-slate-300">Defaults lean toward personal highlights. Change anything you’re comfortable sharing.</div>
+                    <div className="space-y-4 rounded-2xl border border-white/15 bg-[#0f0f13] p-4 text-sm text-gray-200">
+                      <div className="text-xs text-gray-300">Defaults lean toward personal highlights. Change anything you’re comfortable sharing.</div>
                       <div className="grid gap-3 md:grid-cols-2">
-                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#18181b] p-3">
                           <input
                             type="checkbox"
                             className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
@@ -852,10 +862,10 @@ export default function Settings() {
                           />
                           <div>
                             <p className="font-semibold text-white">Only personal calendars</p>
-                            <p className="text-xs text-slate-300">Ignore anything that sounds like work.</p>
+                            <p className="text-xs text-gray-300">Ignore anything that sounds like work.</p>
                           </div>
                         </label>
-                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#18181b] p-3">
                           <input
                             type="checkbox"
                             className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
@@ -865,10 +875,10 @@ export default function Settings() {
                           />
                           <div>
                             <p className="font-semibold text-white">Work calendars</p>
-                            <p className="text-xs text-slate-300">Include selected work meetings if you want.</p>
+                            <p className="text-xs text-gray-300">Include selected work meetings if you want.</p>
                           </div>
                         </label>
-                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#18181b] p-3">
                           <input
                             type="checkbox"
                             className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
@@ -878,10 +888,10 @@ export default function Settings() {
                           />
                           <div>
                             <p className="font-semibold text-white">All-day / long events</p>
-                            <p className="text-xs text-slate-300">Trips, birthdays, holidays, weekend getaways.</p>
+                            <p className="text-xs text-gray-300">Trips, birthdays, holidays, weekend getaways.</p>
                           </div>
                         </label>
-                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#18181b] p-3">
                           <input
                             type="checkbox"
                             className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
@@ -891,10 +901,10 @@ export default function Settings() {
                           />
                           <div>
                             <p className="font-semibold text-white">Regular meetings</p>
-                            <p className="text-xs text-slate-300">Let us mention routine meetings or syncs.</p>
+                            <p className="text-xs text-gray-300">Let us mention routine meetings or syncs.</p>
                           </div>
                         </label>
-                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 md:col-span-2">
+                        <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-[#18181b] p-3 md:col-span-2">
                           <input
                             type="checkbox"
                             className="mt-1 h-4 w-4 rounded border-white/30 bg-transparent"
@@ -904,17 +914,17 @@ export default function Settings() {
                           />
                           <div>
                             <p className="font-semibold text-white">Include locations (city-level only)</p>
-                            <p className="text-xs text-slate-300">We’ll keep places vague like “Austin” or “trip out of town”, never exact addresses.</p>
+                            <p className="text-xs text-gray-300">We’ll keep places vague like “Austin” or “trip out of town”, never exact addresses.</p>
                           </div>
                         </label>
                       </div>
                       <div className="flex items-center justify-between border-t border-white/10 pt-3">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-gray-400">
                           {calendarSettingsLoading ? "Loading your saved preferences..." : "These choices apply to every summary."}
                         </p>
                         <Button
                           size="sm"
-                          className="rounded-full border border-white/20 bg-white/15 text-white hover:bg-white/25"
+                          className="rounded-full border border-white/20 bg-white/10 text-white hover:bg-white/20"
                           onClick={handleSaveCalendarSettings}
                           disabled={!calendarSettingsDirty || calendarSettingsSaving || calendarSettingsLoading}
                         >

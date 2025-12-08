@@ -56,6 +56,8 @@ export default function LifeUpdates() {
   const [userId, setUserId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [userSummary, setUserSummary] = useState("");
+  const [heroPhoto, setHeroPhoto] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +92,7 @@ export default function LifeUpdates() {
     "Adding finishing touches...",
   ];
   const { toast } = useToast();
-  const [integrationTab, setIntegrationTab] = useState<"strava" | "spotify" | "calendar">("strava");
+  const [integrationTab, setIntegrationTab] = useState<"overview" | "strava" | "spotify" | "calendar">("overview");
 
   // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   const files = e.target.files ? Array.from(e.target.files) : [];
@@ -129,6 +131,12 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const newPreviews = files.map((f) => URL.createObjectURL(f));
   setPhotoPreviews((prev) => [...prev, ...newPreviews]);
 };
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeroPhoto(file);
+    setHeroPreview(URL.createObjectURL(file));
+  };
   const handleRemovePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
@@ -373,6 +381,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const fd = new FormData();
         fd.append("user_summary", enhancedSummary);
         fd.append("update_id", String(data.id));
+        if (heroPhoto) {
+          fd.append("photos", heroPhoto, heroPhoto.name);
+        }
         photos.forEach((file) => fd.append("photos", file, file.name));
 
         const response = await fetch(`${API_BASE_URL}/summarize-update`, {
@@ -432,6 +443,8 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       // Reset form
       setTitle("");
       setUserSummary("");
+      setHeroPhoto(null);
+      setHeroPreview(null);
       setPhotos([]);
       setSelectedTrack(null);
     } catch (error) {
@@ -487,110 +500,65 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-slate-50">
+    <div className="min-h-screen bg-[#000000] text-gray-100 flex flex-col items-center px-4 py-10 pb-48 md:py-12 md:pb-56">
       {isSubmitting && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 backdrop-blur">
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-6 py-8 text-center shadow-2xl">
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-6 py-8 text-center shadow-2xl shadow-black/50">
             <div className="flex items-center gap-3 text-white">
-              <Loader2 className="h-5 w-5 animate-spin text-blue-200" />
-              <span className="font-semibold">{loadingMessages[loadingStep]}</span>
+              <Loader2 className="h-5 w-5 animate-spin text-white" />
+              <span className="text-base font-semibold">{loadingMessages[loadingStep]}</span>
             </div>
-            <p className="max-w-xs text-sm text-slate-200/80">
-              Hang tight — we&apos;re saving your update and crafting a recap.
+            <p className="max-w-xs text-sm text-gray-300">
+              Hang tight, we&apos;re saving your update and crafting a recap.
             </p>
           </div>
         </div>
       )}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.18),transparent_35%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.12),transparent_25%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,#ffffff0f_1px,transparent_0)] [background-size:36px_36px]" />
 
-      <div className="relative mx-auto flex max-w-5xl flex-col gap-8 px-6 py-12">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/this-month")}
-              className="rounded-full border border-white/10 bg-white/5 text-slate-100 hover:bg-white/10"
-            >
-              ← Back
-            </Button>
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-blue-100 shadow-inner shadow-blue-500/10">
-              <Sparkles className="h-4 w-4" />
-              Life Updates
-            </div>
-          </div>
-          <span className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
-            <Activity className="h-4 w-4 text-green-300" />
-            AI ready to summarize
-          </span>
+      <div className="w-full max-w-4xl space-y-8">
+        <div className="space-y-1 px-1">
+          <h1 className="text-3xl font-semibold text-white">Create new update</h1>
         </div>
 
-        <div className="space-y-3">
-          <h1 className="text-4xl font-semibold leading-tight text-white">Share what happened</h1>
-          <p className="max-w-3xl text-slate-300">
-            Capture your highlights, add photos, and let us craft a polished recap fit for sharing.
-          </p>
+        <div className="flex gap-3 overflow-x-auto no-scrollbar px-1">
+          {["overview", "strava", "spotify", "calendar"].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setIntegrationTab(tab as typeof integrationTab)}
+              className={`flex-none px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+                integrationTab === tab
+                  ? "bg-white text-black shadow-lg shadow-white/15"
+                  : "bg-[#18181b] border border-white/10 text-gray-400 hover:bg-white/10"
+              }`}
+            >
+              {tab === "overview"
+                ? "Overview"
+                : tab === "strava"
+                  ? "Strava"
+                  : tab === "spotify"
+                    ? "Spotify"
+                    : "Calendar"}
+            </button>
+          ))}
         </div>
 
         {userId && (
-          <Card className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-            <div
-              className={`pointer-events-none absolute inset-0 transition-colors ${integrationGradientClass}`}
-            />
-            <CardHeader className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
               <div className="flex items-center gap-2 text-white">
-                <Activity className="h-5 w-5 text-green-300" />
-                <CardTitle className="text-white">Integrations</CardTitle>
+                <Activity className="h-5 w-5 text-cyan-300" />
+                <p className="text-base font-semibold text-white">Recent activity</p>
               </div>
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-full px-3 text-sm ${
-                    integrationTab === "strava"
-                      ? "border border-white/20 bg-white/15 text-white shadow-sm"
-                      : "text-slate-100"
-                  }`}
-                  onClick={() => setIntegrationTab("strava")}
-                >
-                  Strava
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-full px-3 text-sm ${
-                    integrationTab === "spotify"
-                      ? "border border-white/20 bg-white/15 text-white shadow-sm"
-                      : "text-slate-100"
-                  }`}
-                  onClick={() => setIntegrationTab("spotify")}
-                >
-                  Spotify
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`rounded-full px-3 text-sm ${
-                    integrationTab === "calendar"
-                      ? "border border-white/20 bg-white/15 text-white shadow-sm"
-                      : "text-slate-100"
-                  }`}
-                  onClick={() => setIntegrationTab("calendar")}
-                >
-                  Calendar
-                </Button>
-              </div>
-            </CardHeader>
+              <div className="text-xs text-gray-500">Tap + to add highlights to your update.</div>
+            </div>
 
-            <CardContent className="relative z-10 space-y-4">
+            <div className="space-y-4">
               {integrationTab === "strava" && (
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-white">
-                      <Activity className="h-5 w-5 text-green-300" />
-                      <p className="text-sm font-semibold">Recent Strava</p>
+                      <Activity className="h-5 w-5 text-cyan-300" />
+                        <p className="text-sm font-semibold">Recent Strava</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -603,51 +571,44 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                     </Button>
                   </div>
 
-                  {activitiesError && (
-                    <p className="text-sm text-rose-200">{activitiesError}</p>
-                  )}
+                  {activitiesError && <p className="text-sm text-rose-200">{activitiesError}</p>}
                   {!activitiesError && stravaActivities.length === 0 && (
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-gray-300">
                       No recent Strava activities found. Try a refresh after your next workout.
                     </p>
                   )}
                   <div className="grid gap-3 md:grid-cols-2">
-                    {stravaActivities.map((a) => (
+                    {stravaActivities.map(a => (
                       <div
                         key={a.id}
-                        className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-blue-900/20"
+                        className="group rounded-[1.75rem] border border-white/10 bg-[#16161c] p-4 shadow-inner shadow-black/30 transition hover:border-white/20"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div>
-                            <p className="text-sm font-semibold text-white">{a.name}</p>
-                            <p className="text-xs text-slate-300">
+                            <p className="text-base font-semibold text-white leading-tight">{a.name}</p>
+                            <p className="text-sm text-gray-300">
                               {a.type} · {formatDistance(a.distance)} · {formatTime(a.moving_time)}
                             </p>
-                            <p className="text-xs text-slate-400">
-                              {new Date(a.start_date).toLocaleString()}
-                            </p>
+                            <p className="text-xs text-gray-500">{new Date(a.start_date).toLocaleString()}</p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                          <button
                             onClick={() => insertActivity(a)}
+                            className="w-10 h-10 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/15 transition"
                           >
                             Add
-                          </Button>
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
               {integrationTab === "spotify" && (
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-white">
                       <Music2 className="h-5 w-5 text-emerald-200" />
-                      <p className="text-sm font-semibold">Spotify Highlights</p>
+                      <p className="text-sm font-semibold">Spotify highlights</p>
                       {spotifyConnected && (
                         <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-emerald-50">
                           Connected
@@ -666,7 +627,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                   </div>
 
                   {spotifyError && (
-                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200/30 bg-black/15 px-3 py-2 text-sm text-emerald-50/90">
+                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200/30 bg-black/20 px-3 py-2 text-sm text-emerald-50/90">
                       <Headphones className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
                       <p>
                         {spotifyError}{" "}
@@ -690,10 +651,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                           <p className="text-sm font-semibold">Top tracks</p>
                         </div>
                         <div className="space-y-2">
-                          {spotifyTopTracks.map((t) => (
+                          {spotifyTopTracks.map(t => (
                             <div
                               key={t.id}
-                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
                             >
                               <div className="flex items-center gap-3">
                                 {t.image ? (
@@ -702,17 +663,15 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                                   <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
                                 )}
                                 <div>
-                                  <p className="text-sm font-semibold text-white">{t.name}</p>
-                                  <p className="text-xs text-emerald-50/80">{t.artists}</p>
-                                  {t.album && (
-                                    <p className="text-[11px] text-emerald-50/70">{t.album}</p>
-                                  )}
+                                  <p className="text-base font-semibold text-white">{t.name}</p>
+                                  <p className="text-sm text-emerald-50/80">{t.artists}</p>
+                                  {t.album && <p className="text-xs text-emerald-50/70">{t.album}</p>}
                                 </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
                                 onClick={() => insertTrack(t, "Top track")}
                               >
                                 Add
@@ -728,10 +687,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                           <p className="text-sm font-semibold">Top artists</p>
                         </div>
                         <div className="space-y-2">
-                          {spotifyTopArtists.map((a) => (
+                          {spotifyTopArtists.map(a => (
                             <div
                               key={a.id}
-                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
                             >
                               <div className="flex items-center gap-3">
                                 {a.image ? (
@@ -740,18 +699,16 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                                   <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
                                 )}
                                 <div>
-                                  <p className="text-sm font-semibold text-white">{a.name}</p>
+                                  <p className="text-base font-semibold text-white">{a.name}</p>
                                   {a.genres && a.genres.length > 0 && (
-                                    <p className="text-xs text-emerald-50/80">
-                                      {a.genres.slice(0, 2).join(", ")}
-                                    </p>
+                                    <p className="text-sm text-emerald-50/80">{a.genres.slice(0, 2).join(", ")}</p>
                                   )}
                                 </div>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
                                 onClick={() => insertArtist(a)}
                               >
                                 Add
@@ -770,10 +727,10 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                         <p className="text-sm font-semibold">Recent listening</p>
                       </div>
                       <div className="grid gap-2 md:grid-cols-2">
-                        {spotifyRecent.map((r) => (
+                        {spotifyRecent.map(r => (
                           <div
                             key={r.id}
-                            className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/10 p-3"
+                            className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
                           >
                             <div className="flex items-center gap-3">
                               {r.track.image ? (
@@ -782,17 +739,15 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                                 <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
                               )}
                               <div>
-                                <p className="text-sm font-semibold text-white">{r.track.name}</p>
-                                <p className="text-xs text-emerald-50/80">{r.track.artists}</p>
-                                <p className="text-xs text-emerald-50/60">
-                                  {new Date(r.played_at).toLocaleString()}
-                                </p>
+                                <p className="text-base font-semibold text-white">{r.track.name}</p>
+                                <p className="text-sm text-emerald-50/80">{r.track.artists}</p>
+                                <p className="text-xs text-emerald-50/60">{new Date(r.played_at).toLocaleString()}</p>
                               </div>
                             </div>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/20"
+                              className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
                               onClick={() => insertRecent(r)}
                             >
                               Add
@@ -825,7 +780,6 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                   )}
                 </div>
               )}
-
               {integrationTab === "calendar" && (
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -866,7 +820,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                     </div>
                   )}
                   {!googleError && googleConnected && (
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-gray-400">
                       {calendarSettings.include_locations
                         ? "Locations stay at city-level only."
                         : "Locations are hidden per your preferences."}
@@ -874,23 +828,23 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                   )}
                   {hasGoogleEvents ? (
                     <div className="grid gap-3 md:grid-cols-2">
-                      {googleEvents.map((event) => (
+                      {googleEvents.map(event => (
                         <div
                           key={event.id}
-                          className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-blue-900/20"
+                          className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/30"
                         >
-                          <p className="text-sm font-semibold text-white">{event.label}</p>
-                          <p className="text-xs text-slate-300">{event.window}</p>
+                          <p className="text-base font-semibold text-white">{event.label}</p>
+                          <p className="text-sm text-gray-300">{event.window}</p>
                           {event.location && (
-                            <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
-                              <MapPin className="h-3 w-3 text-slate-300" />
+                            <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+                              <MapPin className="h-3 w-3 text-gray-300" />
                               {event.location}
                             </p>
                           )}
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-3 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            className="mt-3 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/15"
                             onClick={() => insertCalendarEvent(event)}
                           >
                             Add
@@ -900,151 +854,143 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                     </div>
                   ) : (
                     !googleError && (
-                      <p className="text-sm text-slate-300">
-                        No upcoming events were found in the next week. Try refreshing or adding a
-                        new event to your calendar.
+                      <p className="text-sm text-gray-300">
+                        No upcoming events were found in the next week. Try refreshing or adding a new event to your calendar.
                       </p>
                     )
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
-        <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <Upload className="h-5 w-5" />
-              Create New Update
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-200">
-                Title
-              </label>
-              <Input
-                placeholder="e.g., January 2024 Adventures"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-200">
-                What did you do this month?
-              </label>
-              <Textarea
-                placeholder="Tell us about your experiences, achievements, travels, or anything memorable from this month..."
-                value={userSummary}
-                onChange={(e) => setUserSummary(e.target.value)}
-                rows={6}
-                className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-200">
-                Photos (optional)
-              </label>
+        <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] space-y-6">
+          <div className="flex gap-4 items-start">
+            <label className="group relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1f1f24] to-[#0f0f13] flex items-center justify-center shrink-0 border border-white/10 cursor-pointer overflow-hidden">
+              {heroPreview ? (
+                <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
+              ) : (
+                <Upload className="w-6 h-6 text-gray-500 group-hover:text-gray-300 transition" />
+              )}
               <Input
                 type="file"
                 accept="image/*"
-                multiple
-                onChange={handlePhotoUpload}
-                className="cursor-pointer border-white/10 bg-white/5 text-white file:text-white"
+                onChange={handleHeroUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer"
               />
-              {photoPreviews.length > 0 && (
-                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  {photoPreviews.map((src, i) => (
-                    <div
-                      key={i}
-                      className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-inner shadow-blue-900/20"
-                    >
-                      <img
-                        src={src}
-                        alt={`Upload ${i + 1}`}
-                        className="h-28 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                      />
-                      <button
-                        onClick={() => handleRemovePhoto(i)}
-                        className="absolute right-2 top-2 rounded-full bg-white/15 p-1 text-white backdrop-blur hover:bg-white/25"
-                        aria-label="Remove photo"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            </label>
+            <div className="flex-1 space-y-3">
+              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Title</label>
+              <input
+                type="text"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Brazil Adventure"
+                className="w-full bg-transparent border-b border-gray-700 pb-2 text-lg font-semibold text-white placeholder-gray-600 focus:outline-none focus:border-gray-500"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-5 pl-1">
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Summary</h3>
+              <Textarea
+                placeholder="Tell us about your experiences, achievements, travels..."
+                value={userSummary}
+                onChange={e => setUserSummary(e.target.value)}
+                rows={4}
+                className="rounded-xl border border-gray-800 bg-[#0f0f13] text-sm text-gray-300 placeholder-gray-600 focus:border-gray-600 focus:ring-1 focus:ring-gray-700"
+              />
             </div>
 
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 text-white shadow-glow transition-all hover:shadow-blue-500/40"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving & Generating Summary...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Save & Generate AI Summary
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Photos</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                {photoPreviews.map((src, i) => (
+                  <div
+                    key={i}
+                    className="relative w-20 h-20 rounded-2xl bg-[#1f1f24] shrink-0 border border-white/10 overflow-hidden group"
+                  >
+                    <img src={src} alt={`Upload ${i + 1}`} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition" />
+                    <button
+                      onClick={() => handleRemovePhoto(i)}
+                      className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white backdrop-blur hover:bg-black/70"
+                      aria-label="Remove photo"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
+                <label className="w-20 h-20 rounded-2xl border border-dashed border-gray-700 shrink-0 flex items-center justify-center cursor-pointer bg-[#121218] hover:border-gray-500 transition">
+                  <Upload className="w-5 h-5 text-gray-500" />
+                  <Input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {aiSummary && (
-          <Card className="rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl">
+          <Card className="rounded-[2rem] border border-white/5 bg-[#111117] shadow-2xl shadow-black/50 backdrop-blur-xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
-                <Sparkles className="h-5 w-5 text-blue-200" />
-                AI Summary
+                <Sparkles className="h-5 w-5 text-cyan-300" />
+                AI summary
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-slate-300">
-                Edit anything you like, then save to continue.
-              </p>
+              <p className="text-base text-gray-300">Edit anything you like, then save to continue.</p>
               <Textarea
                 value={aiSummary}
-                onChange={(e) => setAiSummary(e.target.value)}
+                onChange={e => setAiSummary(e.target.value)}
                 rows={5}
-                className="border-white/10 bg-white/5 text-white placeholder:text-slate-400"
+                className="rounded-2xl border border-white/10 bg-[#16161c] text-white placeholder:text-gray-500 focus:border-white/20 focus:ring-0"
               />
               <div className="flex flex-wrap items-center gap-3">
-                <Button
+                <button
                   onClick={handlePublishSummary}
                   disabled={isPublishing}
-                  className="bg-white text-slate-900 hover:bg-slate-100"
+                  className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isPublishing ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Saving…
                     </>
                   ) : (
                     <>Save & view summary</>
                   )}
-                </Button>
-                <span className="text-xs text-slate-300">
-                  Final summary shows as usual after save.
-                </span>
+                </button>
+                <span className="text-xs text-gray-400">Final summary shows as usual after save.</span>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                <p className="text-xs uppercase tracking-[0.08em] text-slate-400">Preview</p>
-                <p className="mt-2 leading-relaxed text-slate-100">{aiSummary}</p>
+              <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+                <p className="text-xs uppercase tracking-[0.08em] text-gray-400">Preview</p>
+                <p className="mt-2 leading-relaxed text-gray-100">{aiSummary}</p>
               </div>
             </CardContent>
           </Card>
         )}
+      </div>
+
+      <div className="fixed left-0 right-0 bottom-28 flex justify-center px-4 pointer-events-none z-40">
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="pointer-events-auto w-full max-w-md h-14 rounded-full bg-white text-black font-semibold shadow-2xl shadow-white/10 flex items-center justify-center gap-2 transition hover:scale-[1.02] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving & generating summary...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Save & generate AI summary
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
