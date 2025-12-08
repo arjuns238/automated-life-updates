@@ -77,6 +77,7 @@ export default function Timeline() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const loadUpdates = async () => {
     setLoading(true);
@@ -135,6 +136,7 @@ export default function Timeline() {
       const { error } = await supabase.from("life_updates").delete().eq("id", id);
       if (error) throw error;
       setUpdates(prev => prev.filter(u => u.id !== id));
+      setConfirmId(null);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Could not delete update.";
       setError(message);
@@ -155,7 +157,7 @@ export default function Timeline() {
         return (
             <Card
               key={item.id}
-              className="group relative overflow-visible rounded-[1.5rem] border border-white/10 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1"
+              className="group relative flex flex-col overflow-visible rounded-[1.5rem] border border-white/10 bg-[#18181b] shadow-[0_20px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-1"
             >
             {backdrop && (
               <div
@@ -173,7 +175,7 @@ export default function Timeline() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="relative z-10 pt-0">
+            <CardContent className="relative z-10 flex-1 pt-0 flex flex-col">
               <p className="text-sm leading-relaxed text-gray-100 whitespace-pre-line">
                 {summaryText}
               </p>
@@ -196,8 +198,7 @@ export default function Timeline() {
                   )}
                 </div>
               )}
-
-              <div className="mt-4 flex w-full items-center justify-between gap-3 flex-wrap">
+              <div className="mt-auto pt-6 flex w-full items-center justify-between gap-3 flex-wrap">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -211,7 +212,7 @@ export default function Timeline() {
                   size="sm"
                   className="rounded-full border border-rose-300/30 bg-rose-500/20 text-xs text-rose-50 hover:bg-rose-500/30"
                   disabled={deletingId === item.id}
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => setConfirmId(item.id)}
                 >
                   {deletingId === item.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -227,7 +228,7 @@ export default function Timeline() {
           </Card>
         );
       }),
-    [updates, navigate]
+    [updates, navigate, deletingId, confirmId]
   );
 
   return (
@@ -306,6 +307,34 @@ export default function Timeline() {
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">{rendered}</div>
         )}
       </div>
+      {confirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0f0f13] p-5 text-white shadow-2xl">
+            <p className="text-base font-semibold mb-3">Are you sure you want to delete?</p>
+            <p className="text-sm text-gray-300 mb-4">This will remove the update from your timeline.</p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full border border-white/10 bg-white/10 text-xs text-white hover:bg-white/15"
+                onClick={() => setConfirmId(null)}
+                disabled={deletingId === confirmId}
+              >
+                No
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="rounded-full border border-rose-300/30 bg-rose-500/20 text-xs text-rose-50 hover:bg-rose-500/30"
+                disabled={deletingId === confirmId}
+                onClick={() => handleDelete(confirmId)}
+              >
+                {deletingId === confirmId ? <Loader2 className="h-4 w-4 animate-spin" /> : "Yes, delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

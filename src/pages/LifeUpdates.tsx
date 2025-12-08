@@ -56,6 +56,8 @@ export default function LifeUpdates() {
   const [userId, setUserId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [userSummary, setUserSummary] = useState("");
+  const [heroPhoto, setHeroPhoto] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -129,6 +131,12 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const newPreviews = files.map((f) => URL.createObjectURL(f));
   setPhotoPreviews((prev) => [...prev, ...newPreviews]);
 };
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeroPhoto(file);
+    setHeroPreview(URL.createObjectURL(file));
+  };
   const handleRemovePhoto = (index: number) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
     setPhotoPreviews((prev) => prev.filter((_, i) => i !== index));
@@ -373,6 +381,9 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const fd = new FormData();
         fd.append("user_summary", enhancedSummary);
         fd.append("update_id", String(data.id));
+        if (heroPhoto) {
+          fd.append("photos", heroPhoto, heroPhoto.name);
+        }
         photos.forEach((file) => fd.append("photos", file, file.name));
 
         const response = await fetch(`${API_BASE_URL}/summarize-update`, {
@@ -432,6 +443,8 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       // Reset form
       setTitle("");
       setUserSummary("");
+      setHeroPhoto(null);
+      setHeroPreview(null);
       setPhotos([]);
       setSelectedTrack(null);
     } catch (error) {
@@ -854,9 +867,19 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
 
         <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] space-y-6">
           <div className="flex gap-4 items-start">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1f1f24] to-[#0f0f13] flex items-center justify-center shrink-0 border border-white/10">
-              <Upload className="w-6 h-6 text-gray-500" />
-            </div>
+            <label className="group relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1f1f24] to-[#0f0f13] flex items-center justify-center shrink-0 border border-white/10 cursor-pointer overflow-hidden">
+              {heroPreview ? (
+                <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
+              ) : (
+                <Upload className="w-6 h-6 text-gray-500 group-hover:text-gray-300 transition" />
+              )}
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleHeroUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </label>
             <div className="flex-1 space-y-3">
               <label className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Title</label>
               <input

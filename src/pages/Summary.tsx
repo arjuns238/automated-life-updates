@@ -20,7 +20,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 
   if (imgs.length === 1) {
     return (
-      <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/10 group">
+      <div className="mt-4 overflow-hidden rounded-2xl group">
         <img
           src={imgs[0]}
           alt="attachment 1"
@@ -34,7 +34,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 
   if (imgs.length === 2) {
     return (
-      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl">
         {imgs.map((src, i) => (
           <div key={i} className="relative group">
             <img
@@ -53,7 +53,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
   if (imgs.length === 3) {
     // 1 big on left, 2 stacked on right
     return (
-      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+      <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl">
         <div className="relative group">
           <img
             src={imgs[0]}
@@ -82,7 +82,7 @@ function MediaGrid({ photos }: { photos: string[] }) {
 
   // 4 images
   return (
-    <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl border bg-muted/10">
+    <div className="mt-4 grid grid-cols-2 gap-1 overflow-hidden rounded-2xl">
       {imgs.map((src, i) => (
         <div key={i} className="relative group">
           <img
@@ -305,7 +305,7 @@ export default function Summary() {
               : undefined
           }
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/75 to-black/70" />
+          {heroImage && <div className="absolute inset-0 bg-gradient-to-br from-black/85 via-black/75 to-black/70" />}
           <div className="relative px-5 py-6 sm:px-8 sm:py-8 space-y-4">
             <div className="flex items-start gap-3">
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-white/10">
@@ -458,11 +458,15 @@ export default function Summary() {
                   </button>
                 ))}
               </div>
+
+              {galleryPhotos.length > 0 && (
+                <div className="mt-4 rounded-[1.25rem] bg-black/30 p-3 backdrop-blur-sm">
+                  <MediaGrid photos={galleryPhotos} />
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {galleryPhotos.length > 0 && <MediaGrid photos={galleryPhotos} />}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
