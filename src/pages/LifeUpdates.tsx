@@ -23,6 +23,7 @@ import {
   Wand2,
 } from "lucide-react";
 import { getSpotifyStatus } from "@/integrations/spotify/auth";
+import { getStravaStatus } from "@/integrations/strava/auth";
 import {
   getGoogleStatus,
   fetchGoogleEvents,
@@ -81,6 +82,7 @@ export default function LifeUpdates() {
   const [lastUpdateId, setLastUpdateId] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [stravaActivities, setStravaActivities] = useState<StravaActivity[]>([]);
+  const [stravaConnected, setStravaConnected] = useState<boolean | null>(null);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [activitiesError, setActivitiesError] = useState<string | null>(null);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
@@ -201,15 +203,32 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setActivitiesLoading(true);
     setActivitiesError(null);
     try {
+      try {
+        const status = await getStravaStatus(uid);
+        setStravaConnected(status.connected);
+        if (!status.connected) {
+          setStravaActivities([]);
+          setActivitiesError("Strava not connected. Connect to pull workouts.");
+          return;
+        }
+      } catch (statusError) {
+        console.warn("Could not verify Strava status", statusError);
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/strava/activities?user_id=${encodeURIComponent(uid)}&per_page=5`);
       if (!res.ok) {
         const text = await res.text().catch(() => "");
+        if (res.status === 401 || res.status === 403) {
+          setStravaConnected(false);
+          throw new Error("Strava not connected. Connect in Settings to pull workouts.");
+        }
         throw new Error(text || `Failed with ${res.status}`);
       }
       const data = await res.json();
       // backend returns { items: [], ... } in router; fallback to array
       const items: StravaActivity[] = Array.isArray(data) ? data : data.items || [];
       setStravaActivities(items);
+      setStravaConnected(true);
     } catch (err: unknown) {
       console.error("Failed to fetch Strava activities", err);
       const message = err instanceof Error ? err.message : "Could not load Strava data";
@@ -711,7 +730,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                       className="h-9 rounded-full border border-white/10 bg-white/5 px-4 text-xs text-white hover:bg-white/10"
                       onClick={() => navigate("/settings")}
                     >
-                      Connect Strava in Settings
+                      Connect Strava
                     </Button>
                   </div>
                 )}
@@ -861,7 +880,20 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 {activitiesLoading ? "Refreshing..." : "Refresh"}
               </Button>
             </div>
-            {activitiesError && <p className="text-sm text-rose-200">{activitiesError}</p>}
+            {activitiesError && (
+              <div className="flex items-start gap-2 rounded-xl border border-orange-200/30 bg-black/20 px-3 py-2 text-sm text-orange-50/90">
+                <Activity className="mt-0.5 h-4 w-4 shrink-0 text-orange-200" />
+                <p className="flex flex-wrap items-center gap-1">
+                  <span>{activitiesError}</span>
+                  <button
+                    onClick={() => navigate("/settings")}
+                    className="underline decoration-orange-200/80 underline-offset-4"
+                  >
+                    Go to Settings
+                  </button>
+                </p>
+              </div>
+            )}
             {!activitiesError && stravaActivities.length === 0 && (
               <p className="text-sm text-gray-300">No recent Strava activities yet.</p>
             )}
