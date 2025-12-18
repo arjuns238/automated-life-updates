@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { API_BASE_URL } from "@/lib/apiBase";
 
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, Sparkles, UserPlus } from "lucide-react";
 
 export default function SignUp() {
   const [email, setEmail] = useState("");
@@ -75,69 +75,109 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-background flex items-center justify-center">
-      <div className="container mx-auto px-4 py-8 max-w-md">
-        <Card className="shadow-glow border border-border/60 bg-card/70 backdrop-blur">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="w-6 h-6 text-primary" />
-              Create your account
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignUp} className="space-y-6">
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Email</label>
-                <Input
-                  type="email"
-                  placeholder="you@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Password</label>
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Signing up...
-                  </>
-                ) : (
-                  <>Sign Up</>
-                )}
-              </Button>
-              <div className="text-center text-sm text-muted-foreground">or</div>
-              <Button
-                type="button"
-                variant="secondary"
-                className="w-full"
-                size="lg"
-                disabled={guestLoading || loading}
-                onClick={handleGuestSignIn}
-              >
-                {guestLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Continuing as guest...
-                  </>
-                ) : (
-                  <>Continue as guest</>
-                )}
-              </Button>
-              <Button type="button" variant="link" className="w-full" onClick={() => navigate("/sign-in")}>Already have an account? Sign In</Button>
-            </form>
-          </CardContent>
-        </Card>
+    <div className="relative min-h-screen overflow-hidden bg-[#05060a] text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(56,189,248,0.18),transparent_38%),radial-gradient(circle_at_80%_8%,rgba(236,72,153,0.18),transparent_36%),radial-gradient(circle_at_52%_82%,rgba(59,130,246,0.16),transparent_34%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.05),rgba(0,0,0,0.25))]" />
+      </div>
+
+      <div className="relative z-10 px-4 py-12">
+        <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-center">
+          <div className="space-y-5 text-center lg:w-1/2 lg:text-left">
+            <div className="space-y-3">
+              <h1 className="text-5xl font-semibold md:text-4xl">
+                daily
+              </h1>
+              <h2 className="text-2xl font-semibold md:text-4xl">
+                A memory layer for your life.
+              </h2>
+              <p className="text-sm text-gray-300 md:text-base">
+                daily collects the memories you create and
+                brings them together. It uses the signals you already generate
+                to help you remember not just what happened, but how each chapter fit together.
+              </p>
+            </div>
+          </div>
+
+          <Card className="w-full max-w-md border-white/10 bg-white/5 text-white shadow-[0_18px_60px_rgba(0,0,0,0.55)] backdrop-blur-xl lg:w-1/2">
+            <CardHeader className="space-y-2 pb-2">
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <UserPlus className="w-6 h-6 text-cyan-200" />
+                Create your account
+              </CardTitle>
+              <p className="text-sm text-gray-300">
+                Own your guest history, integrate with services you use, and keep building the wrap.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignUp} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-200">Email</label>
+                  <Input
+                    type="email"
+                    placeholder="you@email.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="border-white/15 bg-white/5 text-white placeholder:text-gray-400 focus-visible:ring-cyan-300 focus-visible:ring-offset-0"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-200">Password</label>
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="border-white/15 bg-white/5 text-white placeholder:text-gray-400 focus-visible:ring-cyan-300 focus-visible:ring-offset-0"
+                    required
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="h-11 w-full rounded-xl bg-white text-black shadow-[0_16px_50px_rgba(0,0,0,0.45)] transition hover:bg-gray-200 focus-visible:ring-offset-[#05060a]"
+                  size="lg"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing up...
+                    </>
+                  ) : (
+                    <>Sign Up</>
+                  )}
+                </Button>
+                <div className="text-center text-sm text-gray-400">or</div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-11 w-full rounded-xl border border-white/15 bg-white/10 text-white shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:bg-white/15 focus-visible:ring-offset-[#05060a]"
+                  size="lg"
+                  disabled={guestLoading || loading}
+                  onClick={handleGuestSignIn}
+                >
+                  {guestLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Continuing as guest...
+                    </>
+                  ) : (
+                    <>Continue as guest</>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full text-sm text-gray-300 hover:text-white"
+                  onClick={() => navigate("/sign-in")}
+                >
+                  Already have an account? Sign In
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
