@@ -6,7 +6,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Loader2, Upload, Sparkles, X, Music2, Headphones, CalendarDays, MapPin } from "lucide-react";
+import {
+  Activity,
+  Loader2,
+  Upload,
+  Sparkles,
+  X,
+  Music2,
+  Headphones,
+  CalendarDays,
+  MapPin,
+  Images,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight,
+  Wand2,
+} from "lucide-react";
 import { getSpotifyStatus } from "@/integrations/spotify/auth";
 import {
   getGoogleStatus,
@@ -85,14 +100,24 @@ export default function LifeUpdates() {
   const [calendarBullets, setCalendarBullets] = useState<string[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<SpotifyTrack | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [activeMoment, setActiveMoment] = useState(0);
+  const [momentNotes, setMomentNotes] = useState<Record<string, string>>({});
   const loadingMessages = [
     "Saving your update...",
     "Organizing the details...",
     "Drafting your summary...",
     "Adding finishing touches...",
   ];
+  const memoryPrompts = [
+    "What was happening here?",
+    "Who were you with?",
+    "What did this day feel like?",
+    "A detail you'll want to remember?",
+    "Why does this moment matter?",
+  ];
+  const fallbackMomentImage =
+    "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1200&q=80";
   const { toast } = useToast();
-  const [integrationTab, setIntegrationTab] = useState<"overview" | "strava" | "spotify" | "calendar">("overview");
 
   // const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   const files = e.target.files ? Array.from(e.target.files) : [];
@@ -319,21 +344,50 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserSummary((prev) => (prev ? `${prev}${snippet}` : snippet.trim()));
   };
 
-  const integrationGradientClass = useMemo(() => {
-    if (integrationTab === "spotify") {
-      return "bg-gradient-to-r from-[#0e2b1f]/60 via-[#1DB954]/40 to-[#0b1f17]/60";
+  const momentSources = useMemo(() => {
+    const merged = heroPreview ? [heroPreview, ...photoPreviews] : [...photoPreviews];
+    if (merged.length === 0) {
+      return [
+        "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80", // mountain lake
+        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80", // forest trail
+        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80", // ocean waves
+      ];
     }
-    if (integrationTab === "calendar") {
-      return "bg-gradient-to-r from-[#0f1a2e]/40 via-[#4285F4]/35 to-[#0b1a32]/55";
+    return merged;
+  }, [heroPreview, photoPreviews]);
+
+  const hasUserPhotos = heroPreview !== null || photoPreviews.length > 0;
+  const currentMomentKey = momentSources[activeMoment] || "placeholder";
+  const currentPrompt = memoryPrompts[activeMoment % memoryPrompts.length];
+  const currentNote = userSummary;
+
+  useEffect(() => {
+    if (activeMoment > momentSources.length - 1) {
+      setActiveMoment(0);
     }
-    return "bg-gradient-to-r from-orange-500/15 via-amber-400/8 to-blue-500/8";
-  }, [integrationTab]);
+  }, [momentSources.length, activeMoment]);
+
+  const handleMomentNoteChange = (value: string) => {
+    setMomentNotes(prev => ({ ...prev, [currentMomentKey]: value }));
+    setUserSummary(value);
+  };
+
+  const addNoteToRecap = () => {
+    const trimmed = currentNote.trim();
+    if (!trimmed) return;
+    setUserSummary(trimmed);
+  };
+
+  const compileSummary = () => {
+    return userSummary.trim();
+  };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !userSummary.trim()) {
+    const compiledSummary = compileSummary();
+    if (!title.trim() || !compiledSummary) {
       toast({
         title: "Missing information",
-        description: "Please provide both a title and summary",
+        description: "Please provide a title and add at least one moment or note",
         variant: "destructive",
       });
       return;
@@ -364,7 +418,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         .insert({
           user_id: user.id,
           title: title.trim(),
-          user_summary: userSummary.trim(),
+          user_summary: compiledSummary,
           // photos: photos,
         })
         .select()
@@ -377,7 +431,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       let summaryError = null;
 
       try {
-        const enhancedSummary = `${userSummary.trim()}\n\nFocus on:\n- Weave these events into a cohesive recap\n- Call out fitness stats (distance/time) when relevant\n- Keep it upbeat and concise (1-2 sentences unless user specifies otherwise)`;
+        const enhancedSummary = `${compiledSummary}\n\nFocus on:\n- Weave these events into a cohesive recap\n- Call out fitness stats (distance/time) when relevant\n- Keep it upbeat and concise (1-2 sentences unless user specifies otherwise)`;
         const fd = new FormData();
         fd.append("user_summary", enhancedSummary);
         fd.append("update_id", String(data.id));
@@ -515,336 +569,211 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
       )}
 
-      <div className="w-full max-w-4xl space-y-8">
-        <div className="space-y-1 px-1">
-          <h1 className="text-3xl font-semibold text-white">Create new update</h1>
+      <div className="w-full max-w-5xl space-y-8">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.22em] text-gray-500">Life recap builder</p>
+            <h1 className="text-3xl font-semibold text-white">Remember your month, one moment at a time</h1>
+            <p className="text-sm text-gray-400">
+              We&apos;ve collected all your memories and put them in one place. Scroll your photos, react to prompts, drop context and we&apos;ll stitch the rest.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-full border border-white/10 bg-white text-black hover:bg-gray-200"
+            onClick={() => navigate("/wrap")}
+          >
+            View wrap
+          </Button>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto no-scrollbar px-1">
-          {["overview", "strava", "spotify", "calendar"].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setIntegrationTab(tab as typeof integrationTab)}
-              className={`flex-none px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
-                integrationTab === tab
-                  ? "bg-white text-black shadow-lg shadow-white/15"
-                  : "bg-[#18181b] border border-white/10 text-gray-400 hover:bg-white/10"
-              }`}
-            >
-              {tab === "overview"
-                ? "Overview"
-                : tab === "strava"
-                  ? "Strava"
-                  : tab === "spotify"
-                    ? "Spotify"
-                    : "Calendar"}
-            </button>
-          ))}
-        </div>
-
-        {userId && (
-          <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1">
+        <div className="grid gap-5 lg:grid-cols-[1.6fr,1fr]">
+          <div className="rounded-[2rem] border border-white/10 bg-[#0d0d12] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.5)] space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-white">
-                <Activity className="h-5 w-5 text-cyan-300" />
-                <p className="text-base font-semibold text-white">Recent activity</p>
+                <Images className="h-5 w-5 text-cyan-300" />
+                <p className="text-base font-semibold">Photo-first capture</p>
               </div>
-              <div className="text-xs text-gray-500">Tap + to add highlights to your update.</div>
+              <span className="text-xs text-gray-400">
+                {/* {hasUserPhotos ? "Your shots" : "Sample placeholders"} · {activeMoment + 1} / {momentSources.length} */}
+              </span>
             </div>
 
-            <div className="space-y-4">
-              {integrationTab === "strava" && (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-white">
-                      <Activity className="h-5 w-5 text-cyan-300" />
-                        <p className="text-sm font-semibold">Recent Strava</p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                      onClick={() => fetchStravaActivities(userId)}
-                      disabled={activitiesLoading}
-                    >
-                      {activitiesLoading ? "Refreshing..." : "Refresh"}
-                    </Button>
-                  </div>
+            <div className="relative w-full aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-black/40">
+              <img
+                src={momentSources[activeMoment]}
+                alt="Moment"
+                className="absolute inset-0 h-full w-full object-cover opacity-90"
+                data-fallback="false"
+                onError={e => {
+                  if (e.currentTarget.dataset.fallback === "true") return;
+                  e.currentTarget.src = fallbackMomentImage;
+                  e.currentTarget.dataset.fallback = "true";
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+              <div className="absolute top-4 left-4 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white backdrop-blur-md">
+                <MessageCircle className="h-4 w-4" />
+                <span>Swipe through your month</span>
+              </div>
+              <button
+                onClick={() => setActiveMoment(prev => (prev - 1 + momentSources.length) % momentSources.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white backdrop-blur hover:bg-black/85"
+                aria-label="Previous photo"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setActiveMoment(prev => (prev + 1) % momentSources.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white backdrop-blur hover:bg-black/85"
+                aria-label="Next photo"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <div className="absolute bottom-4 left-4 right-4 rounded-2xl bg-black/65 p-3 backdrop-blur">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gray-300">Prompt</p>
+                <p className="text-white font-semibold text-lg leading-tight mt-1">{currentPrompt}</p>
+              </div>
+            </div>
 
-                  {activitiesError && <p className="text-sm text-rose-200">{activitiesError}</p>}
-                  {!activitiesError && stravaActivities.length === 0 && (
-                    <p className="text-sm text-gray-300">
-                      No recent Strava activities found. Try a refresh after your next workout.
-                    </p>
-                  )}
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {stravaActivities.map(a => (
-                      <div
-                        key={a.id}
-                        className="group rounded-[1.75rem] border border-white/10 bg-[#16161c] p-4 shadow-inner shadow-black/30 transition hover:border-white/20"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="text-base font-semibold text-white leading-tight">{a.name}</p>
-                            <p className="text-sm text-gray-300">
-                              {a.type} · {formatDistance(a.distance)} · {formatTime(a.moving_time)}
-                            </p>
-                            <p className="text-xs text-gray-500">{new Date(a.start_date).toLocaleString()}</p>
-                          </div>
-                          <button
-                            onClick={() => insertActivity(a)}
-                            className="w-10 h-10 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/15 transition"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+            <div className="space-y-3">
+              <Textarea
+                value={currentNote}
+                onChange={e => handleMomentNoteChange(e.target.value)}
+                rows={3}
+                placeholder="Add a line or two about this moment..."
+                className="rounded-2xl border border-white/10 bg-[#0c0c12] text-sm text-gray-100 placeholder:text-gray-500 focus:border-white/20 focus:ring-0"
+              />
+              <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                Add a line about who, where, or why this mattered.
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={addNoteToRecap}
+                  className="rounded-full bg-white text-black hover:bg-gray-200"
+                  variant="secondary"
+                  size="sm"
+                >
+                  Drop into recap
+                </Button>
+                <Button
+                  onClick={() => setActiveMoment(prev => (prev + 1) % momentSources.length)}
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                >
+                  Next moment
+                </Button>
+                {/* <p className="text-xs text-gray-400">Every note lands in your recap builder below.</p> */}
+              </div>
+            </div>
+
+            {(stravaActivities.length > 0 || hasSpotifyData || hasGoogleEvents) && (
+              <div className="space-y-3 border-t border-white/10 pt-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-white">
+                    <Activity className="h-4 w-4 text-cyan-300" />
+                    <p className="text-base font-semibold">Suggested moments</p>
                   </div>
+                  <span className="text-xs text-gray-400">Tap to drop into recap</span>
                 </div>
-              )}
-              {integrationTab === "spotify" && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-white">
-                      <Music2 className="h-5 w-5 text-emerald-200" />
-                      <p className="text-sm font-semibold">Spotify highlights</p>
-                      {spotifyConnected && (
-                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-emerald-50">
-                          Connected
-                        </span>
-                      )}
+
+                {stravaActivities.length > 0 ? (
+                  <div className="rounded-xl border border-white/5 bg-white/5 px-3 py-2 space-y-2">
+                    <p className="text-sm font-semibold text-white">Most recent workout</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-3 py-2">
+                        <div>
+                          <p className="text-sm font-semibold text-white leading-tight">{stravaActivities[0].name}</p>
+                          <p className="text-xs text-gray-400">
+                            {stravaActivities[0].type} · {formatDistance(stravaActivities[0].distance)} ·{" "}
+                            {formatTime(stravaActivities[0].moving_time)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
+                          onClick={() => insertActivity(stravaActivities[0])}
+                        >
+                          Add
+                        </Button>
+                      </div>
                     </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/5 bg-white/5 px-3 py-2 space-y-2">
+                    <p className="text-sm font-semibold text-white">Strava not connected</p>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                      onClick={() => userId && fetchSpotifyData(userId)}
-                      disabled={spotifyLoading}
+                      className="h-9 rounded-full border border-white/10 bg-white/5 px-4 text-xs text-white hover:bg-white/10"
+                      onClick={() => navigate("/settings")}
                     >
-                      {spotifyLoading ? "Refreshing..." : "Refresh"}
+                      Connect Strava in Settings
                     </Button>
                   </div>
+                )}
 
-                  {spotifyError && (
-                    <div className="flex items-start gap-2 rounded-xl border border-emerald-200/30 bg-black/20 px-3 py-2 text-sm text-emerald-50/90">
-                      <Headphones className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
-                      <p>
-                        {spotifyError}{" "}
-                        {!spotifyConnected && (
-                          <button
-                            onClick={() => navigate("/settings")}
-                            className="underline decoration-emerald-200/80 underline-offset-4"
-                          >
-                            Go to Settings
-                          </button>
+                {hasSpotifyData && spotifyTopTracks[0] ? (
+                  <div className="rounded-xl border border-white/5 bg-white/5 px-3 py-2 space-y-2">
+                    <p className="text-sm font-semibold text-white">Top song</p>
+                    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-semibold text-white leading-tight">{spotifyTopTracks[0].name}</p>
+                        <p className="text-xs text-emerald-50/80">{spotifyTopTracks[0].artists}</p>
+                        {spotifyTopTracks[0].album && (
+                          <p className="text-[11px] text-emerald-50/70">{spotifyTopTracks[0].album}</p>
                         )}
-                      </p>
-                    </div>
-                  )}
-
-                  {hasSpotifyData && (
-                    <div className="grid gap-4 lg:grid-cols-2">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-white">
-                          <Headphones className="h-4 w-4 text-emerald-100" />
-                          <p className="text-sm font-semibold">Top tracks</p>
-                        </div>
-                        <div className="space-y-2">
-                          {spotifyTopTracks.map(t => (
-                            <div
-                              key={t.id}
-                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
-                            >
-                              <div className="flex items-center gap-3">
-                                {t.image ? (
-                                  <img src={t.image} alt={t.name} className="h-10 w-10 rounded-md object-cover" />
-                                ) : (
-                                  <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
-                                )}
-                                <div>
-                                  <p className="text-base font-semibold text-white">{t.name}</p>
-                                  <p className="text-sm text-emerald-50/80">{t.artists}</p>
-                                  {t.album && <p className="text-xs text-emerald-50/70">{t.album}</p>}
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
-                                onClick={() => insertTrack(t, "Top track")}
-                              >
-                                Add
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-white">
-                          <Sparkles className="h-4 w-4 text-emerald-100" />
-                          <p className="text-sm font-semibold">Top artists</p>
-                        </div>
-                        <div className="space-y-2">
-                          {spotifyTopArtists.map(a => (
-                            <div
-                              key={a.id}
-                              className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
-                            >
-                              <div className="flex items-center gap-3">
-                                {a.image ? (
-                                  <img src={a.image} alt={a.name} className="h-10 w-10 rounded-md object-cover" />
-                                ) : (
-                                  <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
-                                )}
-                                <div>
-                                  <p className="text-base font-semibold text-white">{a.name}</p>
-                                  {a.genres && a.genres.length > 0 && (
-                                    <p className="text-sm text-emerald-50/80">{a.genres.slice(0, 2).join(", ")}</p>
-                                  )}
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
-                                onClick={() => insertArtist(a)}
-                              >
-                                Add
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {hasSpotifyData && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-white">
-                        <Music2 className="h-4 w-4 text-emerald-100" />
-                        <p className="text-sm font-semibold">Recent listening</p>
-                      </div>
-                      <div className="grid gap-2 md:grid-cols-2">
-                        {spotifyRecent.map(r => (
-                          <div
-                            key={r.id}
-                            className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3"
-                          >
-                            <div className="flex items-center gap-3">
-                              {r.track.image ? (
-                                <img src={r.track.image} alt={r.track.name} className="h-10 w-10 rounded-md object-cover" />
-                              ) : (
-                                <div className="h-10 w-10 rounded-md bg-emerald-900/40" />
-                              )}
-                              <div>
-                                <p className="text-base font-semibold text-white">{r.track.name}</p>
-                                <p className="text-sm text-emerald-50/80">{r.track.artists}</p>
-                                <p className="text-xs text-emerald-50/60">{new Date(r.played_at).toLocaleString()}</p>
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="rounded-full border border-white/10 bg-white/10 text-white hover:bg-white/15"
-                              onClick={() => insertRecent(r)}
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {!spotifyError && !hasSpotifyData && (
-                    <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3 text-sm text-emerald-50/90">
-                      <div className="flex items-center gap-2">
-                        <Headphones className="h-4 w-4 text-emerald-200" />
-                        <div>
-                          <p className="font-medium text-white">No listening data yet</p>
-                          <p className="text-xs text-emerald-50/80">Start listening and hit refresh to pull it in.</p>
-                        </div>
                       </div>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="border-white/20 bg-white/5 text-white hover:bg-white/10"
-                        onClick={() => userId && fetchSpotifyData(userId)}
-                        disabled={spotifyLoading}
+                        className="h-8 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
+                        onClick={() => insertTrack(spotifyTopTracks[0], "Top track")}
                       >
-                        Refresh
+                        Add
                       </Button>
                     </div>
-                  )}
-                </div>
-              )}
-              {integrationTab === "calendar" && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-white">
-                      <CalendarDays className="h-5 w-5 text-sky-200" />
-                      <p className="text-sm font-semibold">Google Calendar</p>
-                      {googleConnected && (
-                        <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[11px] text-blue-50">
-                          Connected
-                        </span>
-                      )}
-                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-white/5 bg-white/5 px-3 py-2 space-y-2">
+                    <p className="text-sm font-semibold text-white">Spotify not connected</p>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                      onClick={() => userId && fetchGoogleData(userId)}
-                      disabled={googleLoading}
+                      className="h-9 rounded-full border border-white/10 bg-white/5 px-4 text-xs text-white hover:bg-white/10"
+                      onClick={() => navigate("/settings")}
                     >
-                      {googleLoading ? "Refreshing..." : "Refresh"}
+                      Connect Spotify in Settings
                     </Button>
                   </div>
+                )}
 
-                  {googleError && (
-                    <div className="flex items-start gap-2 rounded-xl border border-blue-200/30 bg-black/20 px-3 py-2 text-sm text-blue-50/90">
-                      <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-blue-200" />
-                      <p>
-                        {googleError}{" "}
-                        {!googleConnected && (
-                          <button
-                            onClick={() => navigate("/settings")}
-                            className="underline decoration-blue-200/80 underline-offset-4"
-                          >
-                            Go to Settings
-                          </button>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  {!googleError && googleConnected && (
-                    <p className="text-xs text-gray-400">
-                      {calendarSettings.include_locations
-                        ? "Locations stay at city-level only."
-                        : "Locations are hidden per your preferences."}
-                    </p>
-                  )}
-                  {hasGoogleEvents ? (
-                    <div className="grid gap-3 md:grid-cols-2">
+                {hasGoogleEvents && (
+                  <div className="rounded-xl border border-white/5 bg-white/5 px-3 py-2 space-y-2">
+                    <p className="text-sm font-semibold text-white">Calendar moments</p>
+                    <div className="space-y-2">
                       {googleEvents.map(event => (
                         <div
                           key={event.id}
-                          className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/30"
+                          className="flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-3 py-2"
                         >
-                          <p className="text-base font-semibold text-white">{event.label}</p>
-                          <p className="text-sm text-gray-300">{event.window}</p>
-                          {event.location && (
-                            <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
-                              <MapPin className="h-3 w-3 text-gray-300" />
-                              {event.location}
-                            </p>
-                          )}
+                          <div>
+                            <p className="text-sm font-semibold text-white leading-tight">{event.label}</p>
+                            <p className="text-xs text-gray-400">{event.window}</p>
+                            {event.location && (
+                              <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {event.location}
+                              </p>
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="mt-3 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/15"
+                            className="h-8 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
                             onClick={() => insertCalendarEvent(event)}
                           >
                             Add
@@ -852,82 +781,222 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    !googleError && (
-                      <p className="text-sm text-gray-300">
-                        No upcoming events were found in the next week. Try refreshing or adding a new event to your calendar.
-                      </p>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-[2rem] border border-white/10 bg-[#18181b] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)] space-y-6">
-          <div className="flex gap-4 items-start">
-            <label className="group relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1f1f24] to-[#0f0f13] flex items-center justify-center shrink-0 border border-white/10 cursor-pointer overflow-hidden">
-              {heroPreview ? (
-                <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
-              ) : (
-                <Upload className="w-6 h-6 text-gray-500 group-hover:text-gray-300 transition" />
-              )}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleHeroUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-            </label>
-            <div className="flex-1 space-y-3">
-              <label className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="Brazil Adventure"
-                className="w-full bg-transparent border-b border-gray-700 pb-2 text-lg font-semibold text-white placeholder-gray-600 focus:outline-none focus:border-gray-500"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-5 pl-1">
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Summary</h3>
-              <Textarea
-                placeholder="Tell us about your experiences, achievements, travels..."
-                value={userSummary}
-                onChange={e => setUserSummary(e.target.value)}
-                rows={4}
-                className="rounded-xl border border-gray-800 bg-[#0f0f13] text-sm text-gray-300 placeholder-gray-600 focus:border-gray-600 focus:ring-1 focus:ring-gray-700"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">Photos</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-                {photoPreviews.map((src, i) => (
-                  <div
-                    key={i}
-                    className="relative w-20 h-20 rounded-2xl bg-[#1f1f24] shrink-0 border border-white/10 overflow-hidden group"
-                  >
-                    <img src={src} alt={`Upload ${i + 1}`} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition" />
-                    <button
-                      onClick={() => handleRemovePhoto(i)}
-                      className="absolute right-1.5 top-1.5 rounded-full bg-black/50 p-1 text-white backdrop-blur hover:bg-black/70"
-                      aria-label="Remove photo"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
                   </div>
-                ))}
-                <label className="w-20 h-20 rounded-2xl border border-dashed border-gray-700 shrink-0 flex items-center justify-center cursor-pointer bg-[#121218] hover:border-gray-500 transition">
-                  <Upload className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/5 pt-3">
+              <div className="flex items-center gap-2 text-sm text-gray-300">
+                <Wand2 className="h-4 w-4 text-cyan-200" />
+                <span>Upload more photos to make this feel like a slideshow.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex cursor-pointer items-center gap-2 rounded-full border border-dashed border-white/20 px-3 py-1.5 text-sm text-white hover:border-white/40">
+                  <Upload className="h-4 w-4" />
+                  Add photos
                   <Input type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
                 </label>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-[1.5rem] border border-white/10 bg-[#111118] p-4 shadow-lg shadow-black/40 space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-[0.14em] text-gray-500">Wrap details</p>
+                  <p className="text-base text-white font-semibold">Title & hero</p>
+                </div>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] text-gray-200">
+                  {/* Optional hero */}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="group relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#1f1f24] to-[#0f0f13] flex items-center justify-center shrink-0 border border-white/10 cursor-pointer overflow-hidden">
+                  {heroPreview ? (
+                    <img src={heroPreview} alt="Hero preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Upload className="w-5 h-5 text-gray-500 group-hover:text-gray-300 transition" />
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHeroUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                </label>
+                <div className="flex-1 space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">Title</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Give this update a name"
+                    className="w-full bg-transparent border-b border-gray-700 pb-2 text-lg font-semibold text-white placeholder-gray-600 focus:outline-none focus:border-gray-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Recap textarea intentionally removed per new flow */}
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-[1.5rem] border border-white/10 bg-[#111118] p-4 shadow-lg shadow-black/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <Activity className="h-4 w-4 text-orange-200" />
+                <p className="text-base font-semibold">Recent workouts</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                onClick={() => userId && fetchStravaActivities(userId)}
+                disabled={activitiesLoading}
+              >
+                {activitiesLoading ? "Refreshing..." : "Refresh"}
+              </Button>
+            </div>
+            {activitiesError && <p className="text-sm text-rose-200">{activitiesError}</p>}
+            {!activitiesError && stravaActivities.length === 0 && (
+              <p className="text-sm text-gray-300">No recent Strava activities yet.</p>
+            )}
+            <div className="space-y-2">
+              {stravaActivities.slice(0, 4).map(a => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-white">{a.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {a.type} · {formatDistance(a.distance)} · {formatTime(a.moving_time)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
+                    onClick={() => insertActivity(a)}
+                  >
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[1.5rem] border border-white/10 bg-[#111118] p-4 shadow-lg shadow-black/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <Music2 className="h-4 w-4 text-emerald-200" />
+                <p className="text-base font-semibold">Listening & events</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                onClick={() => {
+                  if (userId) {
+                    fetchSpotifyData(userId);
+                    fetchGoogleData(userId);
+                  }
+                }}
+                disabled={spotifyLoading || googleLoading}
+              >
+                {spotifyLoading || googleLoading ? "Refreshing..." : "Refresh"}
+              </Button>
+            </div>
+
+            {spotifyError && (
+              <div className="flex items-start gap-2 rounded-xl border border-emerald-200/30 bg-black/20 px-3 py-2 text-sm text-emerald-50/90">
+                <Headphones className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" />
+                <p>
+                  {spotifyError}{" "}
+                  {!spotifyConnected && (
+                    <button
+                      onClick={() => navigate("/settings")}
+                      className="underline decoration-emerald-200/80 underline-offset-4"
+                    >
+                      Go to Settings
+                    </button>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {hasSpotifyData && (
+              <div className="space-y-2">
+                {spotifyTopTracks.slice(0, 2).map(t => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      {t.image ? (
+                        <img src={t.image} alt={t.name} className="h-9 w-9 rounded-md object-cover" />
+                      ) : (
+                        <div className="h-9 w-9 rounded-md bg-emerald-900/40" />
+                      )}
+                      <div>
+                        <p className="text-sm font-semibold text-white">{t.name}</p>
+                        <p className="text-xs text-emerald-50/80">{t.artists}</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-full border border-white/10 bg-white/10 px-3 text-xs text-white hover:bg-white/15"
+                      onClick={() => insertTrack(t, "Top track")}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!spotifyError && !hasSpotifyData && (
+              <p className="text-sm text-gray-300">Connect Spotify in Settings to pull music moments.</p>
+            )}
+
+            {hasGoogleEvents && (
+              <div className="space-y-2">
+                {googleEvents.slice(0, 2).map(event => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-white">{event.label}</p>
+                      <p className="text-xs text-gray-400">{event.window}</p>
+                      {event.location && (
+                        <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {event.location}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-full border border-white/10 bg-white/5 px-3 text-xs text-white hover:bg-white/10"
+                      onClick={() => insertCalendarEvent(event)}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!googleError && !hasGoogleEvents && (
+              <p className="text-sm text-gray-300">Calendar looks quiet. Add events or refresh.</p>
+            )}
           </div>
         </div>
 
