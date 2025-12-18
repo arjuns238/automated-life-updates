@@ -2,18 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import {
-  Home as HomeIcon,
-  Gift,
-  PenSquare,
-  History,
-  LayoutGrid,
-} from "lucide-react";
+import { Gift, PenSquare, History, LayoutGrid } from "lucide-react";
 
 const navItems = [
-  { to: "/this-month", icon: HomeIcon },
-  { to: "/wrap", icon: Gift },
   { to: "/life-updates", icon: PenSquare },
+  { to: "/wrap", icon: Gift },
   { to: "/timeline", icon: History },
   { to: "/settings", icon: LayoutGrid },
 ];

@@ -1,19 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Home,
-  Clock3,
-  ScrollText,
-  MessageCircle,
-  Settings,
-} from "lucide-react";
+import { Clock3, ScrollText, MessageCircle, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { to: "/this-month", label: "Home", icon: Home },
-  { to: "/timeline", label: "Timeline", icon: Clock3 },
   { to: "/summary", label: "Summary", icon: ScrollText },
+  { to: "/timeline", label: "Timeline", icon: Clock3 },
   { to: "/chats", label: "Chats", icon: MessageCircle },
   { to: "/settings", label: "Settings", icon: Settings },
 ];

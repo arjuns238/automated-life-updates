@@ -12,6 +12,7 @@ from routers import strava
 from routers import spotify
 from routers import google_calendar
 from routers import wrap
+from routers import guest
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -42,6 +43,7 @@ app.include_router(strava.router, prefix="/api/strava", tags=["strava"])
 app.include_router(spotify.router, prefix="/api/spotify", tags=["spotify"])
 app.include_router(google_calendar.router, prefix="/api/google", tags=["google"])
 app.include_router(wrap.router, prefix="/api/wrap", tags=["wrap"])
+app.include_router(guest.router, prefix="/api/guest", tags=["guest"])
 
 # print("HEREEEE", supabase.storage.list_buckets())
 
