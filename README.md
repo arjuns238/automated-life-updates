@@ -1,6 +1,26 @@
-# AI Friend Flow
+# d-AI-ly
 
-AI Friend Flow is a personal life-recapping app that turns your own notes plus connected integrations (like Strava) into a shareable update for friends. You jot down highlights, optionally attach photos, and the backend pulls in recent activity data, then crafts a short, upbeat summary. It’s built with a React/Tailwind frontend, a Python FastAPI backend, and Supabase for auth/data, so you can automate sending thoughtful, consistent updates without writing them from scratch.
+dAIly is a private, AI-powered life recap app that helps you understand and remember your life with minimal effort. It quietly collects the moments you already create like reflections, workouts, music, and events, and turns them into thoughtful monthly summaries that capture not just what happened, but what it meant.
+
+What dAIly Does
+
+Collects life updates (text + photos)
+
+Connects to Strava, Spotify, and Google Calendar
+
+Generates AI-written monthly recaps (“Wraps”)
+
+Highlights themes, patterns, and key moments
+
+Stores everything privately for long-term reflection
+
+Works as a Progressive Web App (PWA) on desktop and mobile
+
+🧠 Core Idea
+
+“dAIly collects your memories for you, so you can easily recap them.”
+
+Instead of asking you to document everything, dAIly uses the signals you already generate to build a coherent narrative of your life over time.
 
 ## Stack
 - Frontend: Vite, React, TypeScript, Tailwind, shadcn-ui
