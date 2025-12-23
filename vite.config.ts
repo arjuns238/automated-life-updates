@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
       devOptions: {
         enabled: true,
       },
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "robots.txt"],
+      includeAssets: ["favicon-32.png", "apple-touch-icon.png", "robots.txt"],
       manifest: {
         name: "AI Friend Flow",
         short_name: "FriendFlow",
