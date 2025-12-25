@@ -17,6 +17,18 @@ export default function SignUp() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const fetchWithTimeout = async (input: RequestInfo, init: RequestInit, timeoutMs: number) => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(input, { ...init, signal: controller.signal });
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,12 +52,42 @@ export default function SignUp() {
   const handleGuestSignIn = async () => {
     setGuestLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/guest/session`, { method: "POST" });
-      if (!res.ok) {
-        const text = await res.text().catch(() => "Unknown error");
-        throw new Error(`Failed to create guest session: ${res.status} ${text}`);
+      const maxAttempts = 3;
+      const timeoutMs = 15000;
+      let data: { email: string; password: string } | null = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+          const res = await fetchWithTimeout(
+            `${API_BASE_URL}/api/guest/session`,
+            { method: "POST" },
+            timeoutMs,
+          );
+          if (!res.ok) {
+            const text = await res.text().catch(() => "Unknown error");
+            throw new Error(`Failed to create guest session: ${res.status} ${text}`);
+          }
+          data = await res.json();
+          break;
+        } catch (err) {
+          const isAbort = err instanceof DOMException && err.name === "AbortError";
+          const isNetworkError = err instanceof TypeError;
+          if ((isAbort || isNetworkError) && attempt < maxAttempts) {
+            toast({
+              title: "Waking the server...",
+              description: "Guest sign-in can take a moment. Retrying now.",
+            });
+            await delay(1000 * attempt);
+            continue;
+          }
+          throw err;
+        }
       }
-      const data = await res.json();
+
+      if (!data) {
+        throw new Error("Could not start guest session.");
+      }
+
       const { email: guestEmail, password: guestPassword } = data;
 
       const { error } = await supabase.auth.signInWithPassword({
