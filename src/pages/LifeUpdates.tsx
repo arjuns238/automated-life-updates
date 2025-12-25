@@ -376,6 +376,7 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   }, [heroPreview, photoPreviews]);
 
   const hasUserPhotos = heroPreview !== null || photoPreviews.length > 0;
+  const isPlaceholderGallery = !hasUserPhotos;
   const currentMomentKey = momentSources[activeMoment] || "placeholder";
   const currentPrompt = memoryPrompts[activeMoment % memoryPrompts.length];
   const currentNote = userSummary;
@@ -615,9 +616,13 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <p className="text-base font-semibold">Photo-first capture</p>
               </div>
               <span className="text-xs text-gray-400">
-                {/* {hasUserPhotos ? "Your shots" : "Sample placeholders"} · {activeMoment + 1} / {momentSources.length} */}
+                {isPlaceholderGallery ? "Sample placeholders" : "Your shots"} · {activeMoment + 1} /{" "}
+                {momentSources.length}
               </span>
             </div>
+            <p className="text-xs text-gray-400">
+              Upload your own photos to customize this, or we can pull the most relevant moments for you.
+            </p>
 
             <div className="relative w-full aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-b from-white/10 to-black/40">
               <img
@@ -636,6 +641,11 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <MessageCircle className="h-4 w-4" />
                 <span>Swipe through your month</span>
               </div>
+              {isPlaceholderGallery && (
+                <div className="absolute top-4 right-4 rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur-md">
+                  Placeholder
+                </div>
+              )}
               <button
                 onClick={() => setActiveMoment(prev => (prev - 1 + momentSources.length) % momentSources.length)}
                 className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white backdrop-blur hover:bg-black/85"
