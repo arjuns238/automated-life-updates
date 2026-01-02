@@ -24,8 +24,8 @@ export default defineConfig(({ mode }) => ({
         short_name: "FriendFlow",
         description:
           "Personal life-recapping companion that blends your notes and integrations like Strava into shareable updates.",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
+        theme_color: "#000000",
+        background_color: "#000000",
         start_url: "/",
         scope: "/",
         display: "standalone",

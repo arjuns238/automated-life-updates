@@ -641,11 +641,6 @@ const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
                 <MessageCircle className="h-4 w-4" />
                 <span>Swipe through your month</span>
               </div>
-              {isPlaceholderGallery && (
-                <div className="absolute top-4 right-4 rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-white/80 backdrop-blur-md">
-                  Placeholder
-                </div>
-              )}
               <button
                 onClick={() => setActiveMoment(prev => (prev - 1 + momentSources.length) % momentSources.length)}
                 className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white backdrop-blur hover:bg-black/85"

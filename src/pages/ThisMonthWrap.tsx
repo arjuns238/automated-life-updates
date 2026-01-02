@@ -233,7 +233,7 @@ export default function ThisMonthWrap() {
     if (wrap.music.top_track) {
       return `${wrap.music.top_track} • ${genres || "mixed vibes"}`;
     }
-    return genres || "Discovering new sounds";
+    return genres || "Discove new sounds";
   }, [wrap]);
 
   const categoryImages: Record<string, string> = {
