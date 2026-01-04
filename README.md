@@ -4,38 +4,46 @@ dAIly is a private, AI-powered life recap app that helps you understand and reme
 
 What dAIly Does
 
-Collects life updates (text + photos)
+- Collects life updates (text + photos)
 
-Connects to Strava, Spotify, and Google Calendar
+- Connects to Strava, Spotify, and Google Calendar
 
-Generates AI-written monthly recaps (“Wraps”)
+- Generates AI-written monthly recaps (“Wraps”)
 
-Highlights themes, patterns, and key moments
+- Highlights themes, patterns, and key moments
 
-Stores everything privately for long-term reflection
+- Stores everything privately for long-term reflection
 
 Works as a Progressive Web App (PWA) on desktop and mobile
 
-🧠 Core Idea
+Core Idea
 
 “dAIly collects your memories for you, so you can easily recap them.”
 
-Instead of asking you to document everything, dAIly uses the signals you already generate to build a coherent narrative of your life over time.
 
 ## Stack
+Typical local setup time: ~10 minutes
+
 - Frontend: Vite, React, TypeScript, Tailwind, shadcn-ui
 - Backend: Python, FastAPI (uvicorn), Strava + Supabase integrations
 - Misc: Supabase auth/storage/DB, Vite dev server
 
 ## Screenshots
 Login flow:
-![Login flow](public/screenshots/login.png)
+<p align="center">
+  <img src="public/screenshots/login.png" width="350" />
+</p>
+
 
 Connect integrations:
-![Connect integrations](public/screenshots/connect.png)
+<p align="center">
+  <img src="public/screenshots/connect.png" width="350" />
+</p>
 
 Generate wrap:
-![Generate wrap](public/screenshots/wrap.png)
+<p align="center">
+  <img src="public/screenshots/wrap.png" width="350" />
+</p>
 
 ## Architecture
 ```mermaid
@@ -50,7 +58,7 @@ Prereqs: Node.js, npm, Python 3.10+, and Supabase env vars configured.
 
 ```sh
 # Clone and install
-git clone https://github.com/arjuns238/ai-friend-flow.git
+git clone https://github.com/arjuns238/automated-life-updates.git
 cd ai-friend-flow
 npm install
 
@@ -83,3 +91,10 @@ The Vite frontend now ships with [`vite-plugin-pwa`](https://vite-pwa-org.netlif
 Front-end is hosted on https://automated-life-updates.pages.dev/
 
 Back-end is hosted on render on the URL - https://automated-life-updates.onrender.com
+
+## What I Learned
+- Designing end-to-end full-stack systems with auth, storage, and external integrations
+- Managing async data ingestion and API reliability
+- Shipping and deploying a PWA with offline support
+- Structuring an AI-driven backend for iterative product development
+
