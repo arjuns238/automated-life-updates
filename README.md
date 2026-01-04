@@ -27,14 +27,36 @@ Instead of asking you to document everything, dAIly uses the signals you already
 - Backend: Python, FastAPI (uvicorn), Strava + Supabase integrations
 - Misc: Supabase auth/storage/DB, Vite dev server
 
+## Screenshots
+Login flow:
+![Login flow](public/screenshots/login.png)
+
+Connect integrations:
+![Connect integrations](public/screenshots/connect.png)
+
+Generate wrap:
+![Generate wrap](public/screenshots/wrap.png)
+
+## Architecture
+```mermaid
+flowchart LR
+  A[React + Vite] --> B[FastAPI]
+  B --> C[Supabase]
+  B --> D[Integrations\nStrava · Spotify · Google Calendar]
+```
+
 ## Getting started
 Prereqs: Node.js, npm, Python 3.10+, and Supabase env vars configured.
 
 ```sh
 # Clone and install
-git clone <YOUR_GIT_URL>
+git clone https://github.com/arjuns238/ai-friend-flow.git
 cd ai-friend-flow
 npm install
+
+# Create env files
+cp .env.example .env
+cp python-backend/.env.example python-backend/.env
 
 # (Optional) create a Python venv
 python -m venv .venv
@@ -42,9 +64,11 @@ source .venv/bin/activate
 pip install -r python-backend/requirements.txt
 
 # Run the backend (from python-backend/)
+cd python-backend
 uvicorn main:app --reload --port 8000
 
 # In another terminal, run the frontend (from repo root)
+cd ..
 npm run dev
 ```
 
@@ -56,7 +80,6 @@ The Vite frontend now ships with [`vite-plugin-pwa`](https://vite-pwa-org.netlif
 2. For a production-like test, run `npm run build && npm run preview` and open the preview URL in Chrome or Edge. Use the browser's "Install App" button (or the Application tab in DevTools) to install.
 3. When new builds ship, the service worker updates itself (`registerType: autoUpdate`). Users see the fresh content on the next navigation; check the console logs for refresh/offline-ready messages while developing.
 
-Front-end is hosted on Site is hosted on https://automated-life-updates.pages.dev/
+Front-end is hosted on https://automated-life-updates.pages.dev/
 
 Back-end is hosted on render on the URL - https://automated-life-updates.onrender.com
-
