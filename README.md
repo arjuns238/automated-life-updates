@@ -88,10 +88,6 @@ The Vite frontend now ships with [`vite-plugin-pwa`](https://vite-pwa-org.netlif
 2. For a production-like test, run `npm run build && npm run preview` and open the preview URL in Chrome or Edge. Use the browser's "Install App" button (or the Application tab in DevTools) to install.
 3. When new builds ship, the service worker updates itself (`registerType: autoUpdate`). Users see the fresh content on the next navigation; check the console logs for refresh/offline-ready messages while developing.
 
-Front-end is hosted on https://automated-life-updates.pages.dev/
-
-Back-end is hosted on render on the URL - https://automated-life-updates.onrender.com
-
 ## What I Learned
 - Designing end-to-end full-stack systems with auth, storage, and external integrations
 - Managing async data ingestion and API reliability
